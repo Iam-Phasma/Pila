@@ -440,9 +440,9 @@ async function speakQueueNumber() {
   await waitForSpeechVoices();
 
   const announcementText =
-    "Now <break time='0.04s'/> serving, number " +
+    "Now serving, number " +
     state.currentNumber +
-    ". <break time='0.5s'/> Now <break time='0.04s'/> serving, number " +
+    ". Now serving, number " +
     state.currentNumber +
     ".";
   const utterance = new window.SpeechSynthesisUtterance(announcementText);
