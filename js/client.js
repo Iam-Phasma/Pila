@@ -155,7 +155,12 @@ async function speakQueueNumber() {
   else { utterance.lang = "en-US"; }
   utterance.rate = 0.84;
   utterance.pitch = 1.08;
+  // Store reference to prevent garbage collection mid-utterance
+  state.currentUtterance = utterance;
   window.speechSynthesis.cancel();
+  // Delay after cancel is required — Chrome and iOS silently drop a speak() call
+  // that arrives before the cancel has fully flushed the synthesis queue.
+  await new Promise(r => setTimeout(r, 80));
   window.speechSynthesis.speak(utterance);
 }
 
