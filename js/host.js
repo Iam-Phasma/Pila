@@ -28,6 +28,8 @@ const elements = {
   settingsPanel: document.getElementById("settingsPanel"),
   autoSpeakToggle: document.getElementById("autoSpeakToggle"),
   autoAlertToggle: document.getElementById("autoAlertToggle"),
+  muteHostSpeakToggle: document.getElementById("muteHostSpeakToggle"),
+  muteHostChimeToggle: document.getElementById("muteHostChimeToggle"),
   resetButton: document.getElementById("resetButton"),
   setNumberInput: document.getElementById("setNumberInput"),
   setNumberButton: document.getElementById("setNumberButton"),
@@ -62,6 +64,8 @@ const state = {
   settingsOpen: false,
   autoSpeakOnAdvance: false,
   autoAlertOnAdvance: false,
+  muteHostSpeak: false,
+  muteHostChime: false,
   supabase: null,
   queueChannel: null,
   alertChannel: null,
@@ -88,6 +92,8 @@ function loadHostSettings() {
     const parsedSettings = JSON.parse(rawSettings);
     state.autoSpeakOnAdvance = Boolean(parsedSettings.autoSpeakOnAdvance);
     state.autoAlertOnAdvance = Boolean(parsedSettings.autoAlertOnAdvance);
+    state.muteHostSpeak = Boolean(parsedSettings.muteHostSpeak);
+    state.muteHostChime = Boolean(parsedSettings.muteHostChime);
   } catch (error) {
     console.error(error);
   }
@@ -97,7 +103,9 @@ function persistHostSettings() {
   try {
     window.localStorage.setItem(HOST_SETTINGS_STORAGE_KEY, JSON.stringify({
       autoSpeakOnAdvance: state.autoSpeakOnAdvance,
-      autoAlertOnAdvance: state.autoAlertOnAdvance
+      autoAlertOnAdvance: state.autoAlertOnAdvance,
+      muteHostSpeak: state.muteHostSpeak,
+      muteHostChime: state.muteHostChime
     }));
   } catch (error) {
     console.error(error);
@@ -109,6 +117,8 @@ function renderSettings() {
   elements.settingsButton.setAttribute("aria-expanded", String(state.settingsOpen));
   elements.autoSpeakToggle.checked = state.autoSpeakOnAdvance;
   elements.autoAlertToggle.checked = state.autoAlertOnAdvance;
+  elements.muteHostSpeakToggle.checked = state.muteHostSpeak;
+  elements.muteHostChimeToggle.checked = state.muteHostChime;
 }
 
 function toggleSettingsPanel() {
@@ -398,6 +408,10 @@ function chooseAnnouncementVoice() {
 }
 
 async function speakQueueNumber() {
+  if (state.muteHostSpeak) {
+    return;
+  }
+
   if (!("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance !== "function") {
     setStatus("Speech not supported");
     return;
@@ -424,6 +438,10 @@ async function speakQueueNumber() {
 }
 
 async function playAlertTone() {
+  if (state.muteHostChime) {
+    return;
+  }
+
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 
   if (!AudioContextClass) {
@@ -956,6 +974,12 @@ elements.autoSpeakToggle.addEventListener("change", (event) => {
 });
 elements.autoAlertToggle.addEventListener("change", (event) => {
   updateHostSetting("autoAlertOnAdvance", event.target.checked);
+});
+elements.muteHostSpeakToggle.addEventListener("change", (event) => {
+  updateHostSetting("muteHostSpeak", event.target.checked);
+});
+elements.muteHostChimeToggle.addEventListener("change", (event) => {
+  updateHostSetting("muteHostChime", event.target.checked);
 });
 elements.saveRoomNameButton.addEventListener("click", saveRoomName);
 elements.setNumberButton.addEventListener("click", submitQueueNumber);

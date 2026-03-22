@@ -4,6 +4,7 @@ const DEFAULT_ROOM = "main";
 const DEFAULT_ROOM_NAME = "Queue Room";
 const MAX_ROOM_NAME_LENGTH = 30;
 const ROOM_REGEX = /^[a-z0-9-]{1,32}$/;
+const CLIENT_SETTINGS_KEY = "pila-client-settings";
 
 const roomNameLabel = document.getElementById("roomNameLabel");
 const roomLabel = document.getElementById("roomLabel");
@@ -16,6 +17,12 @@ const display = document.querySelector(".display");
 const liveScreen = document.getElementById("liveScreen");
 const disconnectBackToDashboard = document.getElementById("disconnectBackToDashboard");
 const alertRippleOverlay = document.getElementById("alertRippleOverlay");
+const audioHint = document.getElementById("audioHint");
+const clientSettingsButton = document.getElementById("clientSettingsButton");
+const clientSettingsPanel = document.getElementById("clientSettingsPanel");
+const clientChimeToggle = document.getElementById("clientChimeToggle");
+const clientRippleToggle = document.getElementById("clientRippleToggle");
+const clientSpeakToggle = document.getElementById("clientSpeakToggle");
 
 const state = {
   room: DEFAULT_ROOM,
@@ -29,16 +36,168 @@ const state = {
   alertChannel: null,
   presenceChannel: null,
   sessionId: window.crypto.randomUUID(),
-  alertRippleTimer: null
+  alertRippleTimer: null,
+  audioContext: null,
+  settingsOpen: false,
+  speakOnUpdate: false,
+  chimeOnAlert: true,
+  rippleOnAlert: true,
+  speechVoices: []
 };
 
-function playAlertTone() {
+function loadClientSettings() {
+  try {
+    const raw = window.localStorage.getItem(CLIENT_SETTINGS_KEY);
+    if (!raw) { return; }
+    const parsed = JSON.parse(raw);
+    if (Object.prototype.hasOwnProperty.call(parsed, "speakOnUpdate")) {
+      state.speakOnUpdate = Boolean(parsed.speakOnUpdate);
+    }
+    if (Object.prototype.hasOwnProperty.call(parsed, "chimeOnAlert")) {
+      state.chimeOnAlert = Boolean(parsed.chimeOnAlert);
+    }
+    if (Object.prototype.hasOwnProperty.call(parsed, "rippleOnAlert")) {
+      state.rippleOnAlert = Boolean(parsed.rippleOnAlert);
+    }
+  } catch (_) {}
+}
+
+function persistClientSettings() {
+  try {
+    window.localStorage.setItem(CLIENT_SETTINGS_KEY, JSON.stringify({
+      speakOnUpdate: state.speakOnUpdate,
+      chimeOnAlert: state.chimeOnAlert,
+      rippleOnAlert: state.rippleOnAlert
+    }));
+  } catch (_) {}
+}
+
+function renderClientSettings() {
+  clientSettingsPanel.hidden = !state.settingsOpen;
+  clientSettingsButton.setAttribute("aria-expanded", String(state.settingsOpen));
+  clientSpeakToggle.checked = state.speakOnUpdate;
+  clientChimeToggle.checked = state.chimeOnAlert;
+  clientRippleToggle.checked = state.rippleOnAlert;
+}
+
+function toggleClientSettings() {
+  state.settingsOpen = !state.settingsOpen;
+  renderClientSettings();
+}
+
+function getSpeechVoices() {
+  if (!("speechSynthesis" in window)) { return []; }
+  const voices = window.speechSynthesis.getVoices().filter(Boolean);
+  if (voices.length) { state.speechVoices = voices; }
+  return state.speechVoices;
+}
+
+function waitForSpeechVoices(timeout = 1200) {
+  const voices = getSpeechVoices();
+  if (voices.length || !("speechSynthesis" in window)) { return Promise.resolve(voices); }
+  return new Promise((resolve) => {
+    let settled = false;
+    let timerId = 0;
+    const finalize = () => {
+      if (settled) { return; }
+      settled = true;
+      window.clearTimeout(timerId);
+      window.speechSynthesis.removeEventListener("voiceschanged", finalize);
+      resolve(getSpeechVoices());
+    };
+    timerId = window.setTimeout(finalize, timeout);
+    window.speechSynthesis.addEventListener("voiceschanged", finalize);
+    window.speechSynthesis.getVoices();
+  });
+}
+
+function scoreAnnouncementVoice(voice) {
+  const voiceName = String(voice.name || "").toLowerCase();
+  const voiceLang = String(voice.lang || "").toLowerCase();
+  let score = 0;
+
+  if (voiceLang.startsWith("en-us")) { score += 30; }
+  else if (voiceLang.startsWith("en")) { score += 20; }
+
+  if (voice.localService) { score += 6; }
+  if (voice.default) { score += 2; }
+
+  const preferredNames = [
+    "samantha", "ava", "allison", "serena", "karen",
+    "moira", "susan", "victoria", "zira", "aria", "jenny"
+  ];
+  preferredNames.forEach((name, i) => {
+    if (voiceName.includes(name)) { score += 100 - i * 4; }
+  });
+
+  if (/(female|woman|girl)/.test(voiceName)) { score += 18; }
+  if (/(male|man|boy)/.test(voiceName)) { score -= 12; }
+  if (/(enhanced|premium|natural|neural)/.test(voiceName)) { score += 4; }
+
+  return score;
+}
+
+function chooseAnnouncementVoice() {
+  const voices = getSpeechVoices();
+  if (!voices.length) { return null; }
+  const englishVoices = voices.filter(v => /^en(-|_)?/i.test(v.lang || ""));
+  const pool = englishVoices.length ? englishVoices : voices;
+  return pool.slice().sort((a, b) => scoreAnnouncementVoice(b) - scoreAnnouncementVoice(a))[0] || null;
+}
+
+async function speakQueueNumber() {
+  if (!("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance !== "function") { return; }
+  await waitForSpeechVoices();
+  const text = "Now serving, number " + state.currentNumber + ". Now serving, number " + state.currentNumber + ".";
+  const utterance = new window.SpeechSynthesisUtterance(text);
+  const voice = chooseAnnouncementVoice();
+  if (voice) { utterance.voice = voice; utterance.lang = voice.lang || "en-US"; }
+  else { utterance.lang = "en-US"; }
+  utterance.rate = 0.84;
+  utterance.pitch = 1.08;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
+// Create (and resume) a shared AudioContext on the first user gesture so
+// mobile browsers (iOS Safari) allow audio to play when an alert arrives later.
+function unlockAudio() {
+  if (audioHint) {
+    audioHint.hidden = true;
+  }
+
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) {
     return;
   }
 
-  const audioContext = new AudioContextClass();
+  if (!state.audioContext) {
+    state.audioContext = new AudioContextClass();
+  }
+
+  if (state.audioContext.state === "suspended") {
+    state.audioContext.resume().catch(() => {});
+  }
+}
+
+function getAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return null;
+  }
+
+  if (!state.audioContext) {
+    state.audioContext = new AudioContextClass();
+  }
+
+  return state.audioContext;
+}
+
+function playAlertTone() {
+  const audioContext = getAudioContext();
+  if (!audioContext) {
+    return;
+  }
 
   const resume = audioContext.state === "suspended"
     ? audioContext.resume()
@@ -65,19 +224,17 @@ function playAlertTone() {
       oscillator.start(toneStart);
       oscillator.stop(toneEnd);
     });
-
-    window.setTimeout(() => {
-      audioContext.close().catch(() => {});
-    }, 900);
   }).catch(() => {});
 }
 
 function triggerAlertRipple() {
-  if (!alertRippleOverlay || state.disconnected) {
-    return;
+  if (state.disconnected) { return; }
+
+  if (state.chimeOnAlert) {
+    playAlertTone();
   }
 
-  playAlertTone();
+  if (!state.rippleOnAlert || !alertRippleOverlay) { return; }
 
   if (state.alertRippleTimer) {
     window.clearTimeout(state.alertRippleTimer);
@@ -92,9 +249,6 @@ function triggerAlertRipple() {
   state.alertRippleTimer = window.setTimeout(() => {
     alertRippleOverlay.classList.remove("active");
     state.alertRippleTimer = null;
-    if (!state.disconnected) {
-      statusText.textContent = "Live updates active";
-    }
   }, 2100);
 }
 
@@ -163,7 +317,7 @@ async function fetchRoom() {
   }
   setDisconnected(!data, "The room code is not active right now. Ask the host to restart the queue or share a new code.");
   render();
-  statusText.textContent = state.updatedAt ? "Live updates active" : "Waiting for the host to start this room";
+  statusText.textContent = state.updatedAt ? "" : "Waiting for the host to start this room";
 }
 
 async function subscribe() {
@@ -195,12 +349,15 @@ async function subscribe() {
         setDisconnected(false);
         render();
         statusText.textContent = "Updated just now";
+        if (state.speakOnUpdate) {
+          speakQueueNumber();
+        }
       }
     )
     .subscribe((status) => {
       if (status === "SUBSCRIBED") {
         if (!state.disconnected) {
-          statusText.textContent = "Live updates active";
+          statusText.textContent = "";
         }
       }
     });
@@ -273,6 +430,40 @@ async function boot() {
     render();
     statusText.textContent = "Connection failed";
   }
+
+  loadClientSettings();
+  renderClientSettings();
+
+  // Unlock audio on the first tap so mobile browsers allow the chime to play.
+  document.addEventListener("touchstart", unlockAudio, { once: true, passive: true });
+  document.addEventListener("click", unlockAudio, { once: true });
+
+  clientSettingsButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleClientSettings();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (state.settingsOpen && !clientSettingsPanel.contains(e.target) && e.target !== clientSettingsButton) {
+      state.settingsOpen = false;
+      renderClientSettings();
+    }
+  });
+
+  clientChimeToggle.addEventListener("change", () => {
+    state.chimeOnAlert = clientChimeToggle.checked;
+    persistClientSettings();
+  });
+
+  clientRippleToggle.addEventListener("change", () => {
+    state.rippleOnAlert = clientRippleToggle.checked;
+    persistClientSettings();
+  });
+
+  clientSpeakToggle.addEventListener("change", () => {
+    state.speakOnUpdate = clientSpeakToggle.checked;
+    persistClientSettings();
+  });
 }
 
 boot();
