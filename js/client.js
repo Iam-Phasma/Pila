@@ -15,7 +15,9 @@ const disconnectScreen = document.getElementById("disconnectScreen");
 const disconnectReason = document.getElementById("disconnectReason");
 const display = document.querySelector(".display");
 const liveScreen = document.getElementById("liveScreen");
-const disconnectBackToDashboard = document.getElementById("disconnectBackToDashboard");
+const disconnectBackToDashboard = document.getElementById(
+  "disconnectBackToDashboard",
+);
 const alertRippleOverlay = document.getElementById("alertRippleOverlay");
 const audioHint = document.getElementById("audioHint");
 const clientSettingsButton = document.getElementById("clientSettingsButton");
@@ -42,13 +44,15 @@ const state = {
   speakOnUpdate: false,
   chimeOnAlert: true,
   rippleOnAlert: true,
-  speechVoices: []
+  speechVoices: [],
 };
 
 function loadClientSettings() {
   try {
     const raw = window.localStorage.getItem(CLIENT_SETTINGS_KEY);
-    if (!raw) { return; }
+    if (!raw) {
+      return;
+    }
     const parsed = JSON.parse(raw);
     if (Object.prototype.hasOwnProperty.call(parsed, "speakOnUpdate")) {
       state.speakOnUpdate = Boolean(parsed.speakOnUpdate);
@@ -64,17 +68,23 @@ function loadClientSettings() {
 
 function persistClientSettings() {
   try {
-    window.localStorage.setItem(CLIENT_SETTINGS_KEY, JSON.stringify({
-      speakOnUpdate: state.speakOnUpdate,
-      chimeOnAlert: state.chimeOnAlert,
-      rippleOnAlert: state.rippleOnAlert
-    }));
+    window.localStorage.setItem(
+      CLIENT_SETTINGS_KEY,
+      JSON.stringify({
+        speakOnUpdate: state.speakOnUpdate,
+        chimeOnAlert: state.chimeOnAlert,
+        rippleOnAlert: state.rippleOnAlert,
+      }),
+    );
   } catch (_) {}
 }
 
 function renderClientSettings() {
   clientSettingsPanel.hidden = !state.settingsOpen;
-  clientSettingsButton.setAttribute("aria-expanded", String(state.settingsOpen));
+  clientSettingsButton.setAttribute(
+    "aria-expanded",
+    String(state.settingsOpen),
+  );
   clientSpeakToggle.checked = state.speakOnUpdate;
   clientChimeToggle.checked = state.chimeOnAlert;
   clientRippleToggle.checked = state.rippleOnAlert;
@@ -86,20 +96,28 @@ function toggleClientSettings() {
 }
 
 function getSpeechVoices() {
-  if (!("speechSynthesis" in window)) { return []; }
+  if (!("speechSynthesis" in window)) {
+    return [];
+  }
   const voices = window.speechSynthesis.getVoices().filter(Boolean);
-  if (voices.length) { state.speechVoices = voices; }
+  if (voices.length) {
+    state.speechVoices = voices;
+  }
   return state.speechVoices;
 }
 
 function waitForSpeechVoices(timeout = 1200) {
   const voices = getSpeechVoices();
-  if (voices.length || !("speechSynthesis" in window)) { return Promise.resolve(voices); }
+  if (voices.length || !("speechSynthesis" in window)) {
+    return Promise.resolve(voices);
+  }
   return new Promise((resolve) => {
     let settled = false;
     let timerId = 0;
     const finalize = () => {
-      if (settled) { return; }
+      if (settled) {
+        return;
+      }
       settled = true;
       window.clearTimeout(timerId);
       window.speechSynthesis.removeEventListener("voiceschanged", finalize);
@@ -116,49 +134,97 @@ function scoreAnnouncementVoice(voice) {
   const voiceLang = String(voice.lang || "").toLowerCase();
   let score = 0;
 
-  if (voiceLang.startsWith("en-us")) { score += 30; }
-  else if (voiceLang.startsWith("en")) { score += 20; }
+  if (voiceLang.startsWith("en-us")) {
+    score += 30;
+  } else if (voiceLang.startsWith("en")) {
+    score += 20;
+  }
 
-  if (voice.localService) { score += 6; }
-  if (voice.default) { score += 2; }
+  if (voice.localService) {
+    score += 6;
+  }
+  if (voice.default) {
+    score += 2;
+  }
 
   const preferredNames = [
-    "samantha", "ava", "allison", "serena", "karen",
-    "moira", "susan", "victoria", "zira", "aria", "jenny"
+    "samantha",
+    "ava",
+    "allison",
+    "serena",
+    "karen",
+    "moira",
+    "susan",
+    "victoria",
+    "zira",
+    "aria",
+    "jenny",
   ];
   preferredNames.forEach((name, i) => {
-    if (voiceName.includes(name)) { score += 100 - i * 4; }
+    if (voiceName.includes(name)) {
+      score += 100 - i * 4;
+    }
   });
 
-  if (/(female|woman|girl)/.test(voiceName)) { score += 18; }
-  if (/(male|man|boy)/.test(voiceName)) { score -= 12; }
-  if (/(enhanced|premium|natural|neural)/.test(voiceName)) { score += 4; }
+  if (/(female|woman|girl)/.test(voiceName)) {
+    score += 18;
+  }
+  if (/(male|man|boy)/.test(voiceName)) {
+    score -= 12;
+  }
+  if (/(enhanced|premium|natural|neural)/.test(voiceName)) {
+    score += 4;
+  }
 
   return score;
 }
 
 function chooseAnnouncementVoice() {
   const voices = getSpeechVoices();
-  if (!voices.length) { return null; }
-  const englishVoices = voices.filter(v => /^en(-|_)?/i.test(v.lang || ""));
+  if (!voices.length) {
+    return null;
+  }
+  const englishVoices = voices.filter((v) => /^en(-|_)?/i.test(v.lang || ""));
   const pool = englishVoices.length ? englishVoices : voices;
-  return pool.slice().sort((a, b) => scoreAnnouncementVoice(b) - scoreAnnouncementVoice(a))[0] || null;
+  return (
+    pool
+      .slice()
+      .sort(
+        (a, b) => scoreAnnouncementVoice(b) - scoreAnnouncementVoice(a),
+      )[0] || null
+  );
 }
 
 async function speakQueueNumber() {
-  if (!("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance !== "function") { return; }
+  if (
+    !("speechSynthesis" in window) ||
+    typeof window.SpeechSynthesisUtterance !== "function"
+  ) {
+    return;
+  }
   const synth = window.speechSynthesis;
   await waitForSpeechVoices();
-  const text = "Now serving, number " + state.currentNumber + ". Now serving, number " + state.currentNumber + ".";
+  const text =
+    "Now serving, number " +
+    state.currentNumber +
+    ". Now serving, number " +
+    state.currentNumber +
+    ".";
   const utterance = new window.SpeechSynthesisUtterance(text);
   const voice = chooseAnnouncementVoice();
-  if (voice) { utterance.voice = voice; utterance.lang = voice.lang || "en-US"; }
-  else { utterance.lang = "en-US"; }
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang || "en-US";
+  } else {
+    utterance.lang = "en-US";
+  }
   utterance.rate = 0.84;
   utterance.pitch = 1.08;
   state.currentUtterance = utterance;
   // resume() first — Chrome silently gets stuck in "paused" state on repeated calls
-  try { synth.resume(); } catch (_) {}
+  try {
+    synth.resume();
+  } catch (_) {}
   synth.cancel();
   synth.speak(utterance);
 }
@@ -185,7 +251,10 @@ function unlockAudio() {
 
   // Unlock Speech Synthesis — iOS requires a speak() call inside a user gesture
   // before it will honour programmatic calls from async callbacks.
-  if ("speechSynthesis" in window && typeof window.SpeechSynthesisUtterance === "function") {
+  if (
+    "speechSynthesis" in window &&
+    typeof window.SpeechSynthesisUtterance === "function"
+  ) {
     const primer = new window.SpeechSynthesisUtterance("");
     primer.volume = 0;
     window.speechSynthesis.speak(primer);
@@ -211,42 +280,49 @@ function playAlertTone() {
     return;
   }
 
-  const resume = audioContext.state === "suspended"
-    ? audioContext.resume()
-    : Promise.resolve();
+  const resume =
+    audioContext.state === "suspended"
+      ? audioContext.resume()
+      : Promise.resolve();
 
-  resume.then(() => {
-    const startAt = audioContext.currentTime + 0.02;
-    const pattern = [880, 1174, 880];
+  resume
+    .then(() => {
+      const startAt = audioContext.currentTime + 0.02;
+      const pattern = [880, 1174, 880];
 
-    pattern.forEach((frequency, index) => {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      const toneStart = startAt + index * 0.18;
-      const toneEnd = toneStart + 0.12;
+      pattern.forEach((frequency, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        const toneStart = startAt + index * 0.18;
+        const toneEnd = toneStart + 0.12;
 
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(frequency, toneStart);
-      gainNode.gain.setValueAtTime(0.0001, toneStart);
-      gainNode.gain.linearRampToValueAtTime(0.16, toneStart + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, toneEnd);
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, toneStart);
+        gainNode.gain.setValueAtTime(0.0001, toneStart);
+        gainNode.gain.linearRampToValueAtTime(0.16, toneStart + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, toneEnd);
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.start(toneStart);
-      oscillator.stop(toneEnd);
-    });
-  }).catch(() => {});
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.start(toneStart);
+        oscillator.stop(toneEnd);
+      });
+    })
+    .catch(() => {});
 }
 
 function triggerAlertRipple() {
-  if (state.disconnected) { return; }
+  if (state.disconnected) {
+    return;
+  }
 
   if (state.chimeOnAlert) {
     playAlertTone();
   }
 
-  if (!state.rippleOnAlert || !alertRippleOverlay) { return; }
+  if (!state.rippleOnAlert || !alertRippleOverlay) {
+    return;
+  }
 
   if (state.alertRippleTimer) {
     window.clearTimeout(state.alertRippleTimer);
@@ -261,7 +337,7 @@ function triggerAlertRipple() {
   state.alertRippleTimer = window.setTimeout(() => {
     alertRippleOverlay.classList.remove("active");
     state.alertRippleTimer = null;
-  }, 2100);
+  }, 2600);
 }
 
 function setDisconnected(flag, message = "") {
@@ -271,7 +347,8 @@ function setDisconnected(flag, message = "") {
   display.classList.toggle("disconnected", flag);
 
   if (flag) {
-    disconnectReason.textContent = message || "This queue is no longer connected.";
+    disconnectReason.textContent =
+      message || "This queue is no longer connected.";
   }
 }
 
@@ -305,7 +382,10 @@ function handleRoomDeleted() {
   state.roomExists = false;
   state.currentNumber = 0;
   state.updatedAt = null;
-  setDisconnected(true, "The host ended this queue. Return to the dashboard to join another room.");
+  setDisconnected(
+    true,
+    "The host ended this queue. Return to the dashboard to join another room.",
+  );
   render();
   statusText.textContent = "Queue ended by host";
 }
@@ -327,9 +407,14 @@ async function fetchRoom() {
   if (data && Object.prototype.hasOwnProperty.call(data, "room_name")) {
     state.roomName = sanitizeRoomName(data.room_name);
   }
-  setDisconnected(!data, "The room code is not active right now. Ask the host to restart the queue or share a new code.");
+  setDisconnected(
+    !data,
+    "The room code is not active right now. Ask the host to restart the queue or share a new code.",
+  );
   render();
-  statusText.textContent = state.updatedAt ? "" : "Waiting for the host to start this room";
+  statusText.textContent = state.updatedAt
+    ? ""
+    : "Waiting for the host to start this room";
 }
 
 async function subscribe() {
@@ -343,7 +428,7 @@ async function subscribe() {
         event: "*",
         schema: "public",
         table: "queue_rooms",
-        filter: "room_code=eq." + state.room
+        filter: "room_code=eq." + state.room,
       },
       (payload) => {
         if (payload.eventType === "DELETE") {
@@ -365,7 +450,7 @@ async function subscribe() {
         if (state.speakOnUpdate && state.currentNumber !== previousNumber) {
           speakQueueNumber();
         }
-      }
+      },
     )
     .subscribe((status) => {
       if (status === "SUBSCRIBED") {
@@ -387,13 +472,16 @@ async function subscribe() {
     })
     .subscribe();
 
-  state.presenceChannel = state.supabase.channel("room-watchers-" + state.room, {
-    config: {
-      presence: {
-        key: "client-" + state.sessionId
-      }
-    }
-  });
+  state.presenceChannel = state.supabase.channel(
+    "room-watchers-" + state.room,
+    {
+      config: {
+        presence: {
+          key: "client-" + state.sessionId,
+        },
+      },
+    },
+  );
 
   await new Promise((resolve, reject) => {
     let settled = false;
@@ -404,7 +492,7 @@ async function subscribe() {
           await state.presenceChannel.track({
             role: "client",
             room: state.room,
-            online_at: new Date().toISOString()
+            online_at: new Date().toISOString(),
           });
           if (!settled) {
             settled = true;
@@ -433,7 +521,10 @@ async function boot() {
   render();
 
   if (!isSupabaseConfigured()) {
-    setDisconnected(true, "Realtime is unavailable because Supabase is not configured yet.");
+    setDisconnected(
+      true,
+      "Realtime is unavailable because Supabase is not configured yet.",
+    );
     statusText.textContent = "Supabase is not configured in js/config.js yet";
     return;
   }
@@ -444,7 +535,10 @@ async function boot() {
     await subscribe();
   } catch (error) {
     console.error(error);
-    setDisconnected(true, "The client could not connect to realtime updates for this room.");
+    setDisconnected(
+      true,
+      "The client could not connect to realtime updates for this room.",
+    );
     render();
     statusText.textContent = "Connection failed";
   }
@@ -453,7 +547,10 @@ async function boot() {
   renderClientSettings();
 
   // Unlock audio on the first tap so mobile browsers allow the chime to play.
-  document.addEventListener("touchstart", unlockAudio, { once: true, passive: true });
+  document.addEventListener("touchstart", unlockAudio, {
+    once: true,
+    passive: true,
+  });
   document.addEventListener("click", unlockAudio, { once: true });
 
   clientSettingsButton.addEventListener("click", (e) => {
@@ -462,7 +559,11 @@ async function boot() {
   });
 
   document.addEventListener("click", (e) => {
-    if (state.settingsOpen && !clientSettingsPanel.contains(e.target) && e.target !== clientSettingsButton) {
+    if (
+      state.settingsOpen &&
+      !clientSettingsPanel.contains(e.target) &&
+      e.target !== clientSettingsButton
+    ) {
       state.settingsOpen = false;
       renderClientSettings();
     }

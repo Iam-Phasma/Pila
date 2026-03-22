@@ -410,6 +410,9 @@ body {
   transition: opacity 200ms ease;
   display: inline-block;
   margin: 0 1px;
+  vertical-align: middle;
+  position: relative;
+  bottom: 5px;
 }
 
 .clock-ampm {
@@ -678,18 +681,23 @@ h1,
   border-radius: 50%;
   opacity: 0;
   transform: scale(0.06);
+  background-color: var(--ripple-color);
 }
 
 .alert-ripple-one {
-  background: rgb(217, 40, 40);
+  --ripple-color: rgb(220, 38, 38);
 }
-
 .alert-ripple-two {
-  background: rgb(0, 84, 210);
+  --ripple-color: rgb(252, 248, 11);
 }
-
 .alert-ripple-three {
-  background: rgb(211, 201, 16);
+  --ripple-color: rgb(5, 150, 105);
+}
+.alert-ripple-four {
+  --ripple-color: rgb(37, 99, 235);
+}
+.alert-ripple-five {
+  --ripple-color: rgb(255, 255, 255);
 }
 
 .alert-ripple-overlay.active .alert-ripple {
@@ -697,26 +705,38 @@ h1,
 }
 
 .alert-ripple-overlay.active .alert-ripple-two {
-  animation-delay: 0.16s;
+  animation-delay: 0.18s;
 }
-
 .alert-ripple-overlay.active .alert-ripple-three {
-  animation-delay: 0.32s;
+  animation-delay: 0.36s;
+}
+.alert-ripple-overlay.active .alert-ripple-four {
+  animation-delay: 0.54s;
+}
+.alert-ripple-overlay.active .alert-ripple-five {
+  animation-delay: 0.72s;
 }
 
 @keyframes client-alert-ripple {
   0% {
     opacity: 0;
     transform: scale(0.06);
+    background-color: var(--ripple-color);
   }
 
   14% {
-    opacity: 0.96;
+    opacity: 0.94;
+    background-color: var(--ripple-color);
+  }
+
+  75% {
+    background-color: var(--ripple-color);
   }
 
   100% {
     opacity: 0;
     transform: scale(10.5);
+    background-color: #ffffff;
   }
 }
 
