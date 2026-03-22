@@ -24,17 +24,9 @@ const continueHostButton = document.getElementById("continueHostButton");
 const joinFromInputButton = document.getElementById("joinFromInputButton");
 const joinStatus = document.getElementById("joinStatus");
 const configNotice = document.getElementById("configNotice");
-const startScannerButton = document.getElementById("startScannerButton");
-const stopScannerButton = document.getElementById("stopScannerButton");
-const scannerVideo = document.getElementById("scannerVideo");
-const scannerOverlay = document.getElementById("scannerOverlay");
-const scannerPlaceholder = document.getElementById("scannerPlaceholder");
-const scannerStatus = document.getElementById("scannerStatus");
 
 const supabase = createSupabaseBrowserClient();
 
-let scannerStream = null;
-let scannerFrame = 0;
 let currentGeneratedRoom = "";
 let hostAuthenticated = false;
 
@@ -48,11 +40,6 @@ function setJoinStatus(message) {
     joinStatus.textContent = message;
   }
 }
-
-const detector =
-  typeof window.BarcodeDetector !== "undefined"
-    ? new window.BarcodeDetector({ formats: ["qr_code"] })
-    : null;
 
 function generateRoomCode(length = GENERATED_ROOM_LENGTH) {
   const letters = "abcdefghjkmnpqrstuvwxyz";
@@ -367,70 +354,6 @@ async function openJoinValue(value) {
   }
 }
 
-async function startScanner() {
-  if (!detector) {
-    scannerStatus.textContent =
-      "QR scanning is not supported in this browser. Paste the client link instead.";
-    return;
-  }
-
-  try {
-    scannerStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
-      audio: false,
-    });
-    scannerVideo.srcObject = scannerStream;
-    await scannerVideo.play();
-    scannerVideo.classList.add("show");
-    scannerOverlay.classList.add("show");
-    scannerPlaceholder.style.display = "none";
-    scannerStatus.textContent =
-      "Scanner running. Point the camera at the host QR code.";
-    scanLoop();
-  } catch (error) {
-    console.error(error);
-    scannerStatus.textContent =
-      "Unable to access the camera. Paste the client link instead.";
-  }
-}
-
-function stopScanner() {
-  if (scannerFrame) {
-    cancelAnimationFrame(scannerFrame);
-  }
-
-  if (scannerStream) {
-    scannerStream.getTracks().forEach((track) => track.stop());
-  }
-
-  scannerStream = null;
-  scannerVideo.srcObject = null;
-  scannerVideo.classList.remove("show");
-  scannerOverlay.classList.remove("show");
-  scannerPlaceholder.style.display = "grid";
-  scannerStatus.textContent = "Scanner idle.";
-}
-
-async function scanLoop() {
-  if (!scannerStream || scannerVideo.readyState < 2) {
-    scannerFrame = requestAnimationFrame(scanLoop);
-    return;
-  }
-
-  try {
-    const codes = await detector.detect(scannerVideo);
-    if (codes.length > 0) {
-      stopScanner();
-      await openJoinValue(codes[0].rawValue);
-      return;
-    }
-  } catch (error) {
-    console.error(error);
-  }
-
-  scannerFrame = requestAnimationFrame(scanLoop);
-}
-
 openHostButton.addEventListener("click", openHost);
 continueHostButton.addEventListener("click", () => {
   const room = continueHostButton.dataset.room;
@@ -447,9 +370,47 @@ accountToggleButton.addEventListener("click", () => {
 joinFromInputButton.addEventListener("click", () =>
   openJoinValue(joinInput.value),
 );
-regenerateCodeButton.addEventListener("click", refreshGeneratedRoom);
-startScannerButton.addEventListener("click", startScanner);
-stopScannerButton.addEventListener("click", stopScanner);
+const cameraInput = document.getElementById("cameraInput");
+const scannerStatus = document.getElementById("scannerStatus");
+
+const detector =
+  typeof window.BarcodeDetector !== "undefined"
+    ? new window.BarcodeDetector({ formats: ["qr_code"] })
+    : null;
+
+async function scanImageFile(file) {
+  if (!detector) {
+    scannerStatus.textContent =
+      "QR scanning is not supported in this browser. Paste the client link instead.";
+    return;
+  }
+
+  try {
+    scannerStatus.textContent = "Scanning...";
+    const bitmap = await createImageBitmap(file);
+    const codes = await detector.detect(bitmap);
+    bitmap.close();
+
+    if (codes.length === 0) {
+      scannerStatus.textContent = "No QR code found. Try a clearer photo.";
+      return;
+    }
+
+    scannerStatus.textContent = "";
+    await openJoinValue(codes[0].rawValue);
+  } catch (error) {
+    console.error(error);
+    scannerStatus.textContent = "Could not read the image. Try again.";
+  } finally {
+    cameraInput.value = "";
+  }
+}
+
+cameraInput.addEventListener("change", () => {
+  if (cameraInput.files[0]) {
+    scanImageFile(cameraInput.files[0]);
+  }
+});
 hostPasswordInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     signInHost();

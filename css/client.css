@@ -597,10 +597,7 @@ h1,
   box-shadow: 0 8px 28px rgba(15, 74, 163, 0.14);
   padding: 14px 16px;
   text-align: left;
-}
-
-.client-settings-panel[hidden] {
-  display: none;
+  animation: slideDown 180ms ease-out both;
 }
 
 .client-settings-heading {

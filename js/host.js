@@ -309,7 +309,9 @@ function sanitizeQueueInputValue(value) {
 }
 
 function sanitizeRoomName(value) {
-  return String(value ?? "").slice(0, MAX_ROOM_NAME_LENGTH);
+  return String(value ?? "")
+    .slice(0, MAX_ROOM_NAME_LENGTH)
+    .toUpperCase();
 }
 
 function getSpeechVoices() {
@@ -1092,7 +1094,7 @@ function renderRoomSwitcher() {
     btn.dataset.room = room.code;
     const labelSpan = document.createElement("span");
     labelSpan.className = "room-tab-label";
-    labelSpan.textContent = room.name || room.code.toUpperCase();
+    labelSpan.textContent = room.code.toUpperCase();
     btn.appendChild(labelSpan);
     btn.addEventListener("click", () => switchToRoom(room.code));
     inner.insertBefore(btn, elements.addRoomButton);

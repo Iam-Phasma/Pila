@@ -125,6 +125,21 @@
             <div class="header-popup-divider"></div>
             <button
               class="header-popup-option"
+              id="endQueueButton"
+              type="button"
+            >
+              <svg
+                class="header-popup-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              <span>Return to Dashboard</span>
+            </button>
+            <button
+              class="header-popup-option"
               id="signOutHostButton"
               type="button"
             >
@@ -400,19 +415,6 @@
                   </svg>
                   <span>Preview</span>
                 </a>
-                <button class="secondary" id="endQueueButton" type="button">
-                  <svg
-                    class="control-button-icon"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                    <path d="m16 17 5-5-5-5" />
-                    <path d="M21 12H9" />
-                  </svg>
-                  <span>Close Tab</span>
-                </button>
                 <button class="danger" id="terminateButton" type="button">
                   <svg
                     class="control-button-icon"
@@ -449,6 +451,7 @@
                 type="text"
                 maxlength="30"
                 placeholder="Example: Registrar Window"
+                style="text-transform: uppercase"
               />
               <button class="primary" id="saveRoomNameButton" type="button">
                 Save

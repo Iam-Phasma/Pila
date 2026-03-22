@@ -260,22 +260,15 @@
 
           <div class="tool-card scanner-card">
             <p class="field-label">Join by QR</p>
-            <div class="inline-actions">
-              <button class="primary" id="startScannerButton">
-                Start Scanner
-              </button>
-              <button class="secondary" id="stopScannerButton">
-                Stop Scanner
-              </button>
-            </div>
-            <div class="camera-box">
-              <div class="placeholder" id="scannerPlaceholder">
-                Camera preview will appear here when scanning starts.
-              </div>
-              <video id="scannerVideo" playsinline></video>
-              <div class="scanner-overlay" id="scannerOverlay"></div>
-            </div>
-            <div class="status" id="scannerStatus">Scanner idle.</div>
+            <label class="primary" for="cameraInput">Open App Camera</label>
+            <input
+              id="cameraInput"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style="display: none"
+            />
+            <div class="status" id="scannerStatus"></div>
           </div>
         </article>
       </section>

@@ -501,6 +501,8 @@ body::before {
   margin-bottom: 20px;
   overflow-x: auto;
   scrollbar-width: none;
+  /* ensure inner content doesn't clip against page edges on small screens */
+  -webkit-overflow-scrolling: touch;
 }
 
 .room-switcher::-webkit-scrollbar {
@@ -528,6 +530,8 @@ body::before {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  /* min touch target */
+  min-height: 44px;
   transition:
     background 150ms,
     border-color 150ms,
@@ -571,6 +575,7 @@ body::before {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  min-height: 44px;
   transition:
     background 150ms,
     border-color 150ms,
@@ -587,6 +592,46 @@ body::before {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+}
+
+/* ---- small screen adjustments ---- */
+
+@media (max-width: 760px) {
+  .room-tab {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+  }
+
+  .room-tab-label {
+    max-width: 120px;
+    font-size: 0.82rem;
+  }
+
+  .room-switcher-add {
+    padding: 8px 10px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .room-tab {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  .room-tab-label {
+    max-width: 80px;
+    font-size: 0.8rem;
+  }
+
+  /* icon-only "New Room" button on very small screens */
+  .room-switcher-add > span {
+    display: none;
+  }
+
+  .room-switcher-add {
+    padding: 8px 10px;
+  }
 }
 
 .layout {
@@ -765,7 +810,7 @@ body::before {
 }
 
 .tool-group-manage {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .field-action-row {
