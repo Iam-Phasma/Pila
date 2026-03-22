@@ -375,6 +375,11 @@ async function subscribe() {
     .on("broadcast", { event: "alert-ripple" }, () => {
       triggerAlertRipple();
     })
+    .on("broadcast", { event: "speak-number" }, () => {
+      if (state.speakOnUpdate) {
+        speakQueueNumber();
+      }
+    })
     .subscribe();
 
   state.presenceChannel = state.supabase.channel("room-watchers-" + state.room, {

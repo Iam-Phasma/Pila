@@ -506,6 +506,35 @@ async function sendClientAlertRipple() {
   }
 }
 
+async function sendClientSpeakNumber() {
+  if (!state.alertChannel) {
+    setStatus("Client speak unavailable");
+    return;
+  }
+
+  try {
+    const channelStatus = await state.alertChannel.send({
+      type: "broadcast",
+      event: "speak-number",
+      payload: {
+        room: state.room,
+        currentNumber: state.currentNumber,
+        triggeredAt: new Date().toISOString()
+      }
+    });
+
+    if (channelStatus !== "ok") {
+      throw new Error("Broadcast failed");
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function triggerSpeak() {
+  await Promise.allSettled([speakQueueNumber(), sendClientSpeakNumber()]);
+}
+
 async function triggerAlert() {
   await Promise.allSettled([playAlertTone(), sendClientAlertRipple()]);
 }
@@ -965,7 +994,7 @@ async function boot() {
 
 elements.nextButton.addEventListener("click", () => changeQueue(1));
 elements.backButton.addEventListener("click", () => changeQueue(-1));
-elements.speakButton.addEventListener("click", speakQueueNumber);
+elements.speakButton.addEventListener("click", triggerSpeak);
 elements.alertButton.addEventListener("click", triggerAlert);
 elements.settingsButton.addEventListener("click", toggleSettingsPanel);
 elements.resetButton.addEventListener("click", openResetModal);
