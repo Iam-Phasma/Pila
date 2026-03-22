@@ -9,7 +9,8 @@
         "ignore": [
           "user-select",
           "width: fit-content",
-          "backdrop-filter"
+          "backdrop-filter",
+          "overflow-wrap: anywhere"
         ]
       }
     ]

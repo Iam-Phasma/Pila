@@ -629,8 +629,8 @@ h1,
 .client-toggle-row input[type="checkbox"] {
   width: 36px;
   height: 20px;
-  appearance: none;
   -webkit-appearance: none;
+  appearance: none;
   border-radius: 999px;
   background: var(--line);
   border: none;
