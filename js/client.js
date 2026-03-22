@@ -161,22 +161,30 @@ async function speakQueueNumber() {
 
 // Create (and resume) a shared AudioContext on the first user gesture so
 // mobile browsers (iOS Safari) allow audio to play when an alert arrives later.
+// Also primes speechSynthesis with a silent utterance so iOS unlocks it for
+// subsequent programmatic calls from async callbacks.
 function unlockAudio() {
   if (audioHint) {
     audioHint.hidden = true;
   }
 
+  // Unlock Web Audio
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) {
-    return;
+  if (AudioContextClass) {
+    if (!state.audioContext) {
+      state.audioContext = new AudioContextClass();
+    }
+    if (state.audioContext.state === "suspended") {
+      state.audioContext.resume().catch(() => {});
+    }
   }
 
-  if (!state.audioContext) {
-    state.audioContext = new AudioContextClass();
-  }
-
-  if (state.audioContext.state === "suspended") {
-    state.audioContext.resume().catch(() => {});
+  // Unlock Speech Synthesis — iOS requires a speak() call inside a user gesture
+  // before it will honour programmatic calls from async callbacks.
+  if ("speechSynthesis" in window && typeof window.SpeechSynthesisUtterance === "function") {
+    const primer = new window.SpeechSynthesisUtterance("");
+    primer.volume = 0;
+    window.speechSynthesis.speak(primer);
   }
 }
 
