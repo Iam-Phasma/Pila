@@ -353,6 +353,7 @@ async function subscribe() {
 
         const row = payload.new || payload.old;
         state.roomExists = true;
+        const previousNumber = state.currentNumber;
         state.currentNumber = row?.current_number ?? 0;
         state.updatedAt = row?.updated_at ?? new Date().toISOString();
         if (row && Object.prototype.hasOwnProperty.call(row, "room_name")) {
@@ -361,7 +362,7 @@ async function subscribe() {
         setDisconnected(false);
         render();
         statusText.textContent = "Updated just now";
-        if (state.speakOnUpdate) {
+        if (state.speakOnUpdate && state.currentNumber !== previousNumber) {
           speakQueueNumber();
         }
       }
