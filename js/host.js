@@ -724,10 +724,11 @@ function handleRoomDeleted(message) {
 }
 
 async function ensureRoomExists() {
+  // upsert with room_code only so this never fails if owner_id column doesn't exist yet
   const { error } = await state.supabase
     .from("queue_rooms")
     .upsert(
-      { room_code: state.room, owner_id: state.userId || null },
+      { room_code: state.room },
       { onConflict: "room_code", ignoreDuplicates: true },
     );
 
@@ -737,6 +738,17 @@ async function ensureRoomExists() {
 
   state.roomExists = true;
   state.terminated = false;
+
+  // Best-effort: claim owner_id (silent — column may not exist yet in all envs)
+  if (state.userId) {
+    state.supabase
+      .from("queue_rooms")
+      .update({ owner_id: state.userId })
+      .eq("room_code", state.room)
+      .is("owner_id", null)
+      .then(() => {})
+      .catch(() => {});
+  }
 }
 
 async function fetchRoom() {
@@ -757,6 +769,16 @@ async function fetchRoom() {
     state.roomName = sanitizeRoomName(data.room_name);
   }
   render();
+
+  // Backfill owner_id for rooms that were created before the column was added
+  if (data && !data.owner_id && state.userId) {
+    state.supabase
+      .from("queue_rooms")
+      .update({ owner_id: state.userId })
+      .eq("room_code", state.room)
+      .then(() => {})
+      .catch(() => {});
+  }
 }
 
 async function deleteRoom() {
