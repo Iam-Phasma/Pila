@@ -42,6 +42,12 @@ function setAuthDrawerOpen(flag) {
   accountToggleButton.setAttribute("aria-expanded", String(flag));
 }
 
+function setJoinStatus(message) {
+  if (joinStatus) {
+    joinStatus.textContent = message;
+  }
+}
+
 const detector = typeof window.BarcodeDetector !== "undefined"
   ? new window.BarcodeDetector({ formats: ["qr_code"] })
   : null;
@@ -257,25 +263,25 @@ async function openJoinValue(value) {
   const target = parseJoinValue(value);
 
   if (!target) {
-    joinStatus.textContent = "Enter a valid room code in the format A12345, or paste a matching client link.";
+    setJoinStatus("Enter a valid room code in the format A12345, or paste a matching client link.");
     return;
   }
 
-  joinStatus.textContent = "Checking room...";
+  setJoinStatus("Checking room...");
 
   try {
     const exists = await roomExists(target.room);
 
     if (!exists) {
-      joinStatus.textContent = "Room not found. Check the code or ask the host for a new link.";
+      setJoinStatus("Room not found. Check the code or ask the host for a new link.");
       return;
     }
 
-    joinStatus.textContent = "Opening client view...";
+    setJoinStatus("Opening client view...");
     window.location.href = target.target;
   } catch (error) {
     console.error(error);
-    joinStatus.textContent = "Unable to validate the room right now. Try again in a moment.";
+    setJoinStatus("Unable to validate the room right now. Try again in a moment.");
   }
 }
 

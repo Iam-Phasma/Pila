@@ -33,24 +33,26 @@
             <span class="header-user-email" id="popupAccountChip">--</span>
           </div>
           <div class="header-popup-divider"></div>
-          <div class="header-popup-section-title">
-            <svg class="header-popup-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.08a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-            <div>
-              <p class="control-settings-title">Settings</p>
-              <p class="control-settings-subtitle">Automatic actions on Next or Jump</p>
+          <div class="header-popup-section">
+            <div class="header-popup-section-title">
+              <svg class="header-popup-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.08a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+              <div>
+                <p class="control-settings-title">Settings</p>
+                <p class="control-settings-subtitle">Automatic actions on Next or Jump</p>
+              </div>
             </div>
+            <label class="toggle-row" for="autoSpeakToggle">
+              <span>Toggle Speak</span>
+              <input id="autoSpeakToggle" type="checkbox">
+            </label>
+            <label class="toggle-row" for="autoAlertToggle">
+              <span>Toggle Alert</span>
+              <input id="autoAlertToggle" type="checkbox">
+            </label>
           </div>
-          <label class="toggle-row" for="autoSpeakToggle">
-            <span>Toggle Speak</span>
-            <input id="autoSpeakToggle" type="checkbox">
-          </label>
-          <label class="toggle-row" for="autoAlertToggle">
-            <span>Toggle Alert</span>
-            <input id="autoAlertToggle" type="checkbox">
-          </label>
           <div class="header-popup-divider"></div>
           <button class="header-popup-option" id="signOutHostButton" type="button">
             <svg class="header-popup-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -243,9 +245,9 @@
 
         <div class="admin-card">
           <label for="roomNameInput">Room name</label>
-          <p class="help">Maximum 20 characters.</p>
+          <p class="help">Maximum 30 characters.</p>
           <div class="field-action-row">
-            <input id="roomNameInput" type="text" maxlength="20" placeholder="Example: Registrar Window">
+            <input id="roomNameInput" type="text" maxlength="30" placeholder="Example: Registrar Window">
             <button class="primary" id="saveRoomNameButton" type="button">Save</button>
           </div>
         </div>
@@ -255,7 +257,7 @@
           <div class="field-action-row">
             <input id="roomCodeInput" type="text" readonly>
             <button class="primary" id="copyCodeButton">Copy</button>
-          </div>
+          </div>&nbsp;
 
           <label for="clientLinkInput">Client link</label>
           <div class="field-action-row">

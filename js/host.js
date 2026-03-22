@@ -4,7 +4,7 @@ import QRCode from "https://esm.sh/qrcode@1.5.4";
 const DEFAULT_ROOM = "main";
 const GENERATED_ROOM_LENGTH = 6;
 const MAX_QUEUE_NUMBER = 99999;
-const MAX_ROOM_NAME_LENGTH = 20;
+const MAX_ROOM_NAME_LENGTH = 30;
 const HOST_SETTINGS_STORAGE_KEY = "pila-host-settings";
 const ROOM_REGEX = /^[a-z0-9-]{1,32}$/;
 
@@ -66,7 +66,8 @@ const state = {
   queueChannel: null,
   alertChannel: null,
   presenceChannel: null,
-  sessionId: window.crypto.randomUUID()
+  sessionId: window.crypto.randomUUID(),
+  speechVoices: []
 };
 
 function renderAccount() {
@@ -282,20 +283,71 @@ function sanitizeQueueInputValue(value) {
 }
 
 function sanitizeRoomName(value) {
-  return String(value ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, MAX_ROOM_NAME_LENGTH);
+  return String(value ?? "").slice(0, MAX_ROOM_NAME_LENGTH);
 }
 
-function chooseAnnouncementVoice() {
-  const voices = window.speechSynthesis.getVoices();
-
-  if (!voices.length) {
-    return null;
+function getSpeechVoices() {
+  if (!("speechSynthesis" in window)) {
+    return [];
   }
 
-  const preferredVoiceNames = [
+  const voices = window.speechSynthesis.getVoices().filter(Boolean);
+
+  if (voices.length) {
+    state.speechVoices = voices;
+  }
+
+  return state.speechVoices;
+}
+
+function waitForSpeechVoices(timeout = 1200) {
+  const voices = getSpeechVoices();
+
+  if (voices.length || !("speechSynthesis" in window)) {
+    return Promise.resolve(voices);
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let timerId = 0;
+
+    const finalize = () => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      window.clearTimeout(timerId);
+      window.speechSynthesis.removeEventListener("voiceschanged", finalize);
+      resolve(getSpeechVoices());
+    };
+
+    timerId = window.setTimeout(finalize, timeout);
+    window.speechSynthesis.addEventListener("voiceschanged", finalize);
+    window.speechSynthesis.getVoices();
+  });
+}
+
+function scoreAnnouncementVoice(voice) {
+  const voiceName = String(voice.name || "").toLowerCase();
+  const voiceLang = String(voice.lang || "").toLowerCase();
+  let score = 0;
+
+  if (voiceLang.startsWith("en-us")) {
+    score += 30;
+  } else if (voiceLang.startsWith("en")) {
+    score += 20;
+  }
+
+  if (voice.localService) {
+    score += 6;
+  }
+
+  if (voice.default) {
+    score += 2;
+  }
+
+  const rankedVoiceNames = [
     "samantha",
     "ava",
     "allison",
@@ -306,31 +358,52 @@ function chooseAnnouncementVoice() {
     "victoria",
     "zira",
     "aria",
-    "jenny",
-    "female"
+    "jenny"
   ];
+
+  rankedVoiceNames.forEach((preferredName, index) => {
+    if (voiceName.includes(preferredName)) {
+      score += 100 - index * 4;
+    }
+  });
+
+  if (/(female|woman|girl)/.test(voiceName)) {
+    score += 18;
+  }
+
+  if (/(male|man|boy)/.test(voiceName)) {
+    score -= 12;
+  }
+
+  if (/(enhanced|premium|natural|neural)/.test(voiceName)) {
+    score += 4;
+  }
+
+  return score;
+}
+
+function chooseAnnouncementVoice() {
+  const voices = getSpeechVoices();
+
+  if (!voices.length) {
+    return null;
+  }
 
   const englishVoices = voices.filter((voice) => /^en(-|_)?/i.test(voice.lang || ""));
   const rankedVoices = englishVoices.length ? englishVoices : voices;
 
-  for (const preferredName of preferredVoiceNames) {
-    const matchingVoice = rankedVoices.find((voice) =>
-      voice.name.toLowerCase().includes(preferredName)
-    );
-
-    if (matchingVoice) {
-      return matchingVoice;
-    }
-  }
-
-  return rankedVoices.find((voice) => voice.default) || rankedVoices[0] || null;
+  return rankedVoices
+    .slice()
+    .sort((leftVoice, rightVoice) => scoreAnnouncementVoice(rightVoice) - scoreAnnouncementVoice(leftVoice))[0] || null;
 }
 
-function speakQueueNumber() {
+async function speakQueueNumber() {
   if (!("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance !== "function") {
     setStatus("Speech not supported");
     return;
   }
+
+  await waitForSpeechVoices();
 
   const announcementText = "Now <break time='0.04s'/> serving, number " + state.currentNumber + ". <break time='0.5s'/> Now <break time='0.04s'/> serving, number " + state.currentNumber + ".";
   const utterance = new window.SpeechSynthesisUtterance(announcementText);
@@ -826,6 +899,7 @@ async function confirmPendingAction() {
 
 async function boot() {
   loadHostSettings();
+  void waitForSpeechVoices();
   const params = new URLSearchParams(window.location.search);
   const requestedRoom = params.get("room");
   const requestedRoomName = params.get("name");

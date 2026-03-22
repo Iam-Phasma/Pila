@@ -2,7 +2,7 @@ import { createSupabaseBrowserClient, isSupabaseConfigured } from "./config.js";
 
 const DEFAULT_ROOM = "main";
 const DEFAULT_ROOM_NAME = "Queue Room";
-const MAX_ROOM_NAME_LENGTH = 20;
+const MAX_ROOM_NAME_LENGTH = 30;
 const ROOM_REGEX = /^[a-z0-9-]{1,32}$/;
 
 const roomNameLabel = document.getElementById("roomNameLabel");
@@ -79,10 +79,7 @@ function sanitizeRoomCode(value) {
 }
 
 function sanitizeRoomName(value) {
-  return String(value ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, MAX_ROOM_NAME_LENGTH);
+  return String(value ?? "").slice(0, MAX_ROOM_NAME_LENGTH);
 }
 
 function render() {
