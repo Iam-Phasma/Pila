@@ -32,10 +32,52 @@ const state = {
   alertRippleTimer: null
 };
 
+function playAlertTone() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return;
+  }
+
+  const audioContext = new AudioContextClass();
+
+  const resume = audioContext.state === "suspended"
+    ? audioContext.resume()
+    : Promise.resolve();
+
+  resume.then(() => {
+    const startAt = audioContext.currentTime + 0.02;
+    const pattern = [880, 1174, 880];
+
+    pattern.forEach((frequency, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const toneStart = startAt + index * 0.18;
+      const toneEnd = toneStart + 0.12;
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(frequency, toneStart);
+      gainNode.gain.setValueAtTime(0.0001, toneStart);
+      gainNode.gain.linearRampToValueAtTime(0.16, toneStart + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, toneEnd);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start(toneStart);
+      oscillator.stop(toneEnd);
+    });
+
+    window.setTimeout(() => {
+      audioContext.close().catch(() => {});
+    }, 900);
+  }).catch(() => {});
+}
+
 function triggerAlertRipple() {
   if (!alertRippleOverlay || state.disconnected) {
     return;
   }
+
+  playAlertTone();
 
   if (state.alertRippleTimer) {
     window.clearTimeout(state.alertRippleTimer);
