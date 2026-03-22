@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pila Client</title>
+  <link rel="stylesheet" href="css/client.css">
+</head>
+<body>
+  <div class="alert-ripple-overlay" id="alertRippleOverlay" aria-hidden="true">
+    <span class="alert-ripple alert-ripple-one"></span>
+    <span class="alert-ripple alert-ripple-two"></span>
+    <span class="alert-ripple alert-ripple-three"></span>
+  </div>
+  <main class="display">
+    <section class="disconnect-screen" id="disconnectScreen" hidden>
+      <p class="disconnect-kicker">Queue Status</p>
+      <h1 class="disconnect-title">ROOM DISCONNECTED</h1>
+      <p class="disconnect-reason" id="disconnectReason">This queue is no longer connected.</p>
+      <div class="actions disconnect-actions">
+        <a class="button" id="disconnectBackToDashboard" href="index.html">Return to Dashboard</a>
+      </div>
+    </section>
+    <section class="live-screen" id="liveScreen">
+      <div class="live-banner">
+        <p class="room-name" id="roomNameLabel">Queue Room</p>
+      </div>
+      <div class="live-content">
+        <div class="room" id="roomLabel">Room: main</div>
+        <h1>Now Serving</h1>
+        <div class="number" id="queueNumber">#0</div>
+        <p class="subtext">This page updates automatically when the host changes the queue.</p>
+        <p class="status" id="statusText">Connecting...</p>
+        <div class="actions">
+          <a class="button" id="backToDashboard" href="index.html">Exit Queue</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="js/client.js"></script>
+</body>
+</html>

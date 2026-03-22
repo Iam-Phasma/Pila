@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pila Queue</title>
+  <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+  <header class="sticky-header">
+    <div class="sticky-header-content">
+      <div class="sticky-header-left">
+        <div class="sticky-header-title-wrapper">
+          <p class="sticky-header-kicker">Queue Dashboard</p>
+          <p class="sticky-header-title">Pila Session Launcher</p>
+          <p class="header-date">Start a host session or join an active client display.</p>
+        </div>
+      </div>
+      <div class="sticky-header-actions header-tools">
+        <button class="account-button" id="accountToggleButton" type="button" aria-expanded="false" aria-controls="authDrawer" aria-label="Host account">
+          <svg class="account-button-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 21a8 8 0 0 0-16 0"></path>
+            <circle cx="12" cy="8" r="4"></circle>
+          </svg>
+          <span class="account-button-label" id="accountButtonLabel">Host Login</span>
+        </button>
+        <section class="auth-drawer" id="authDrawer" hidden>
+          <div class="auth-drawer-head">
+            <div>
+              <h2>Host Access</h2>
+              <p>Sign in before creating a new host room.</p>
+            </div>
+            <div class="auth-summary" id="authSummary">Not signed in</div>
+          </div>
+          <label for="hostEmailInput">Email</label>
+          <input id="hostEmailInput" type="email" placeholder="Host email" autocomplete="username">
+          <label for="hostPasswordInput" class="field-gap">Password</label>
+          <div class="input-wrap input-wrap--password">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img" focusable="false">
+                <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+              </svg>
+            </span>
+            <input id="hostPasswordInput" type="password" placeholder="Host password" autocomplete="current-password">
+            <button id="togglePasswordButton" class="password-visibility-btn" type="button" aria-label="Show password" aria-pressed="false">
+              <svg viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false">
+                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+          <div class="actions auth-actions">
+            <button class="primary" id="loginButton">Sign In</button>
+            <button class="secondary" id="logoutButton" type="button">Sign Out</button>
+          </div>
+          <div class="status" id="authStatus">Checking login status...</div>
+        </section>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="notice" id="configNotice">
+      Supabase is not configured. Update the shared settings in js/config.js before using room validation and realtime features.
+    </section>
+
+    <section class="layout">
+      <article class="panel panel-main">
+        <div class="panel-heading">
+          <div>
+            <h2>Start Host Session</h2>
+            <p class="section-copy">Generate a room code and open the host panel.</p>
+          </div>
+        </div>
+
+        <div class="hero-card code-card">
+          <span class="hero-label">Generated room code</span>
+          <strong id="generatedRoomCode">------</strong>
+        </div>
+
+        <div class="tool-strip">
+          <div class="tool-card">
+            <div class="tool-card-head">
+              <p class="tool-card-title">Create Room</p>
+            </div>
+            <div class="tool-group tool-group-host">
+              <button class="secondary" id="regenerateCodeButton">Regenerate</button>
+              <button class="primary" id="openHostButton">Open Host</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="status" id="hostStatus">A new room code will be used when you open the host view.</div>
+
+        <details class="guide-disclosure">
+          <summary class="guide-toggle">Show queue flow</summary>
+          <div class="guide-card">
+            <p class="guide-title">Queue Flow</p>
+            <div class="steps">
+              <div class="step">
+                <strong>1. Launch host</strong>
+                A unique room code is created for the queue session.
+              </div>
+              <div class="step">
+                <strong>2. Share access</strong>
+                The host page provides the room code, link, and QR code.
+              </div>
+              <div class="step">
+                <strong>3. Join display</strong>
+                Open the client screen from another tab, device, or QR scan.
+              </div>
+            </div>
+          </div>
+        </details>
+      </article>
+
+      <article class="panel panel-side">
+        <div class="panel-heading">
+          <div>
+            <h2>Join Display</h2>
+            <p class="section-copy">Join a queuing room by entering a code or scanning a QR code.</p>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <label for="joinInput">Enter Code or paste URL</label>
+          <div class="join-input-row">
+            <input id="joinInput" type="text" placeholder="Example: A12345 or paste client link">
+            <button class="primary" id="joinFromInputButton">Join</button>
+          </div>
+        </div>
+
+        <div class="tool-card scanner-card">
+          <p class="field-label">Join by QR</p>
+          <div class="inline-actions">
+            <button class="primary" id="startScannerButton">Start Scanner</button>
+            <button class="secondary" id="stopScannerButton">Stop Scanner</button>
+          </div>
+          <div class="camera-box">
+            <div class="placeholder" id="scannerPlaceholder">Camera preview will appear here when scanning starts.</div>
+            <video id="scannerVideo" playsinline></video>
+            <div class="scanner-overlay" id="scannerOverlay"></div>
+          </div>
+          <div class="status" id="scannerStatus">Scanner idle.</div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script type="module" src="js/index.js"></script>
+</body>
+</html>

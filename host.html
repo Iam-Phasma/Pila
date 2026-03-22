@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pila Host</title>
+  <link rel="stylesheet" href="css/host.css">
+</head>
+<body>
+  <header class="sticky-header">
+    <div class="sticky-header-content">
+      <div class="sticky-header-left">
+        <div class="sticky-header-title-wrapper">
+          <p class="sticky-header-title">Pila Control Center</p>
+          <p class="header-date">Live queue operations and client display access</p>
+        </div>
+      </div>
+      <div class="sticky-header-actions topbar-meta">
+        <div class="status-chip" id="statusChip">Not connected</div>
+        <button class="account-chip header-user-btn" id="settingsButton" type="button" aria-expanded="false" aria-controls="settingsPanel">
+          <svg class="header-user-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 21a8 8 0 0 0-16 0"/>
+            <circle cx="12" cy="8" r="4"/>
+          </svg>
+          <span class="header-user-name" id="accountChip">--</span>
+        </button>
+        <div class="control-settings-panel header-popup-panel" id="settingsPanel" hidden>
+          <div class="header-popup-user-info">
+            <svg class="header-popup-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2"/>
+              <path d="m4 7 8 6 8-6"/>
+            </svg>
+            <span class="header-user-email" id="popupAccountChip">--</span>
+          </div>
+          <div class="header-popup-divider"></div>
+          <div class="header-popup-section-title">
+            <svg class="header-popup-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.08a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <div>
+              <p class="control-settings-title">Settings</p>
+              <p class="control-settings-subtitle">Automatic actions on Next or Jump</p>
+            </div>
+          </div>
+          <label class="toggle-row" for="autoSpeakToggle">
+            <span>Toggle Speak</span>
+            <input id="autoSpeakToggle" type="checkbox">
+          </label>
+          <label class="toggle-row" for="autoAlertToggle">
+            <span>Toggle Alert</span>
+            <input id="autoAlertToggle" type="checkbox">
+          </label>
+          <div class="header-popup-divider"></div>
+          <button class="header-popup-option" id="signOutHostButton" type="button">
+            <svg class="header-popup-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <path d="m16 17 5-5-5-5"/>
+              <path d="M21 12H9"/>
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="notice" id="configNotice">
+      Update the shared Supabase credentials in js/config.js before using realtime sync.
+    </section>
+
+    <section class="layout">
+      <article class="panel panel-main">
+        <div class="panel-heading">
+          <div>
+            <h2>Queue Operations</h2>
+            <p class="section-copy">Direct the current number and run assisted announcements.</p>
+          </div>
+        </div>
+
+        <div class="queue-hero-card">
+          <div class="queue-number" id="queueNumber">#0</div>
+        </div>
+
+        <div class="stats stats-primary">
+          <div class="stat stat-highlight">
+            <span class="stat-label">Room code</span>
+            <strong id="currentNumberStat">MAIN</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Live viewers</span>
+            <strong id="watcherCountStat">0</strong>
+          </div>
+          <div class="stat hidden-stat">
+            <span class="stat-label">Active room</span>
+            <strong id="roomStat">main</strong>
+          </div>
+          <div class="stat hidden-stat">
+            <span class="stat-label">Last sync</span>
+            <strong id="lastUpdateStat">Waiting</strong>
+          </div>
+        </div>
+
+        <div class="tool-strip">
+          <div class="tool-card">
+            <div class="tool-card-head">
+              <p class="tool-card-title">
+                <svg class="tool-card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 7h10"/>
+                  <path d="M7 12h10"/>
+                  <path d="M7 17h10"/>
+                  <path d="m4 10-2 2 2 2"/>
+                  <path d="m20 14 2-2-2-2"/>
+                </svg>
+                <span>Step Queue</span>
+              </p>
+              <p class="tool-card-copy">Move one number backward or forward.</p>
+            </div>
+            <div class="tool-group tool-group-nav">
+              <button class="secondary" id="backButton">
+                <svg class="control-button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m15 18-6-6 6-6"/>
+                  <path d="M21 12H9"/>
+                </svg>
+                <span>Back</span>
+              </button>
+              <button class="primary" id="nextButton">
+                <svg class="control-button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m9 18 6-6-6-6"/>
+                  <path d="M3 12h12"/>
+                </svg>
+                <span>Next</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="tool-card">
+            <div class="tool-card-head">
+              <p class="tool-card-title">
+                <svg class="tool-card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 8h8"/>
+                  <path d="M8 16h8"/>
+                  <path d="M16 8v8"/>
+                  <path d="M8 8v8"/>
+                </svg>
+                <span>Jump Queue</span>
+              </p>
+              <p class="tool-card-copy">Set the display to an exact number.</p>
+            </div>
+            <div class="tool-group tool-group-jump">
+              <input id="setNumberInput" type="number" min="0" max="99999" step="1" inputmode="numeric" placeholder="Queue number" aria-label="Set queue number">
+              <button class="primary" id="setNumberButton" type="button">
+                <svg class="control-button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m13 5 7 7-7 7"/>
+                  <path d="M20 12H4"/>
+                </svg>
+                <span>Jump</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tool-strip tool-strip-secondary">
+          <div class="tool-card">
+            <div class="tool-card-head">
+              <p class="tool-card-title">
+                <svg class="tool-card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M11 5 6 9H3v6h3l5 4V5z"/>
+                  <path d="M15.5 8.5a5 5 0 0 1 0 7"/>
+                  <path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+                </svg>
+                <span>Announcements</span>
+              </p>
+              <p class="tool-card-copy">Trigger speech or a client alert effect.</p>
+            </div>
+            <div class="tool-group tool-group-action">
+              <button class="primary" id="speakButton" type="button">
+                <svg class="control-button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M11 5 6 9H3v6h3l5 4V5z"/>
+                  <path d="M15.5 8.5a5 5 0 0 1 0 7"/>
+                </svg>
+                <span>Speak</span>
+              </button>
+              <button class="neutral" id="alertButton" type="button">
+                <svg class="control-button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 9v4"/>
+                  <path d="M12 17h.01"/>
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                </svg>
+                <span>Alert</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="tool-card">
+            <div class="tool-card-head">
+              <p class="tool-card-title">
+                <svg class="tool-card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="2"/>
+                  <path d="M8 2v4"/>
+                  <path d="M16 2v4"/>
+                  <path d="M3 10h18"/>
+                </svg>
+                <span>Room Actions</span>
+              </p>
+              <p class="tool-card-copy">Reset, preview, or close the active queue.</p>
+            </div>
+            <div class="tool-group tool-group-manage">
+              <button class="warning" id="resetButton">
+                <svg class="control-button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
+                  <path d="M3 3v5h5"/>
+                </svg>
+                <span>Reset</span>
+              </button>
+              <a class="button neutral" id="openClientLink" target="_blank" rel="noreferrer">
+                <svg class="control-button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15 3h6v6"/>
+                  <path d="M10 14 21 3"/>
+                  <path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
+                </svg>
+                <span>Preview</span>
+              </a>
+              <button class="danger" id="endQueueButton">
+                <svg class="control-button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="6" y="6" width="12" height="12" rx="1"/>
+                </svg>
+                <span>Close</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel panel-side">
+        <div class="panel-heading">
+          <div>
+            <h2>Client Access</h2>
+            <p class="section-copy">Name the room, copy access details, and share the QR code with waiting screens.</p>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <label for="roomNameInput">Room name</label>
+          <p class="help">Maximum 20 characters.</p>
+          <div class="field-action-row">
+            <input id="roomNameInput" type="text" maxlength="20" placeholder="Example: Registrar Window">
+            <button class="primary" id="saveRoomNameButton" type="button">Save</button>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <label for="roomCodeInput">Room code</label>
+          <div class="field-action-row">
+            <input id="roomCodeInput" type="text" readonly>
+            <button class="primary" id="copyCodeButton">Copy</button>
+          </div>
+
+          <label for="clientLinkInput">Client link</label>
+          <div class="field-action-row">
+            <input id="clientLinkInput" type="text" readonly>
+            <button class="primary" id="copyLinkButton">Copy</button>
+          </div>
+        </div>
+
+        <div class="admin-card qr-card">
+          <div class="qr-box">
+            <canvas id="qrCanvas"></canvas>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="endQueueModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="endQueueModalTitle" aria-describedby="endQueueModalText">
+      <p class="modal-eyebrow">Confirm Action</p>
+      <h2 id="endQueueModalTitle">Close this queue?</h2>
+      <p class="modal-text" id="endQueueModalText">This will close the room and disconnect all client screens currently watching this queue.</p>
+      <div class="modal-actions">
+        <button class="secondary" id="cancelEndQueueButton" type="button">Keep Queue</button>
+        <button class="danger" id="confirmEndQueueButton" type="button">Close Queue</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/host.js"></script>
+</body>
+</html>
