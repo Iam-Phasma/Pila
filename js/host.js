@@ -75,6 +75,7 @@ const state = {
   queueChannel: null,
   alertChannel: null,
   presenceChannel: null,
+  ownershipChannel: null,
   sessionId: window.crypto.randomUUID(),
   speechVoices: [],
   ownedRooms: [],
@@ -688,6 +689,11 @@ async function signOutHost() {
     state.ownedRooms = [];
     saveOwnedRooms();
 
+    if (state.ownershipChannel) {
+      await state.supabase.removeChannel(state.ownershipChannel);
+      state.ownershipChannel = null;
+    }
+
     const { error } = await state.supabase.auth.signOut();
 
     if (error) {
@@ -724,31 +730,31 @@ function handleRoomDeleted(message) {
 }
 
 async function ensureRoomExists() {
-  // upsert with room_code only so this never fails if owner_id column doesn't exist yet
-  const { error } = await state.supabase
+  // Try to upsert with owner_id so the INSERT event carries it (enables cross-device sync).
+  // Fall back to room_code-only if the column doesn't exist yet.
+  const payload = state.userId
+    ? { room_code: state.room, owner_id: state.userId }
+    : { room_code: state.room };
+
+  let { error } = await state.supabase
     .from("queue_rooms")
-    .upsert(
-      { room_code: state.room },
-      { onConflict: "room_code", ignoreDuplicates: true },
-    );
+    .upsert(payload, { onConflict: "room_code", ignoreDuplicates: true });
 
   if (error) {
-    throw error;
+    if (error.code === "42703") {
+      // owner_id column doesn't exist yet — retry without it
+      ({ error } = await state.supabase
+        .from("queue_rooms")
+        .upsert(
+          { room_code: state.room },
+          { onConflict: "room_code", ignoreDuplicates: true },
+        ));
+    }
+    if (error) throw error;
   }
 
   state.roomExists = true;
   state.terminated = false;
-
-  // Best-effort: claim owner_id (silent — column may not exist yet in all envs)
-  if (state.userId) {
-    state.supabase
-      .from("queue_rooms")
-      .update({ owner_id: state.userId })
-      .eq("room_code", state.room)
-      .is("owner_id", null)
-      .then(() => {})
-      .catch(() => {});
-  }
 }
 
 async function fetchRoom() {
@@ -1122,6 +1128,67 @@ function unregisterOwnedRoom(code) {
   renderRoomSwitcher();
 }
 
+function subscribeOwnership() {
+  if (!state.supabase || !state.userId) {
+    return;
+  }
+
+  state.ownershipChannel = state.supabase
+    .channel("host-ownership-" + state.userId)
+    .on(
+      "postgres_changes",
+      {
+        event: "DELETE",
+        schema: "public",
+        table: "queue_rooms",
+        // No owner_id filter here: Supabase DELETE events only carry the PK in
+        // payload.old by default (REPLICA IDENTITY), so owner_id is not available
+        // for server-side filtering. We filter client-side instead.
+      },
+      (payload) => {
+        const code = payload.old?.room_code;
+        if (!code) return;
+        // Only act on rooms that belong to this user
+        if (!state.ownedRooms.find((r) => r.code === code)) return;
+        // Remove from tab switcher for all owned rooms, including the active one.
+        // deleteRoom() already calls unregisterOwnedRoom when this device is the
+        // one doing the deletion, so calling it again is harmless (idempotent).
+        unregisterOwnedRoom(code);
+        // If the deleted room is the one currently open on this device, navigate away
+        if (code === state.room) {
+          const next = state.ownedRooms[state.ownedRooms.length - 1];
+          if (next) {
+            switchToRoom(next.code);
+          } else {
+            window.location.href = "index.html";
+          }
+        }
+      },
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "queue_rooms",
+        // No server-side filter: owner_id may not be set on all environments.
+        // We filter client-side by checking payload.new.owner_id.
+      },
+      (payload) => {
+        const code = payload.new?.room_code;
+        if (!code) return;
+        // Only handle rooms that belong to this user
+        if (payload.new?.owner_id !== state.userId) return;
+        if (!state.ownedRooms.find((r) => r.code === code)) {
+          state.ownedRooms.push({ code, name: payload.new?.room_name || "" });
+          saveOwnedRooms();
+          renderRoomSwitcher();
+        }
+      },
+    )
+    .subscribe();
+}
+
 async function syncOwnedRoomsFromDB() {
   if (!state.supabase || !state.userId) {
     return;
@@ -1258,6 +1325,9 @@ async function boot() {
 
   // Populate tabs with all DB-owned rooms (important on new/other devices)
   void syncOwnedRoomsFromDB();
+
+  // Watch for room changes across devices in real time
+  subscribeOwnership();
 
   state.supabase.auth.onAuthStateChange((event, session) => {
     if (event === "SIGNED_OUT" || !session) {
