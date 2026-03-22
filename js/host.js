@@ -672,7 +672,26 @@ async function signOutHost() {
   elements.signOutHostButton.disabled = true;
 
   try {
-    // Terminate all other owned rooms first
+    // Step 1: Broadcast sign-out and tear down ownershipChannel FIRST.
+    // This must happen before any room deletions — otherwise the DELETE events
+    // from our own deletions fire the ownershipChannel listener on this device,
+    // which calls window.location.href = "index.html" and interrupts this flow
+    // before auth.signOut() is ever reached.
+    if (state.ownershipChannel) {
+      try {
+        await state.ownershipChannel.send({
+          type: "broadcast",
+          event: "sign-out",
+          payload: {},
+        });
+      } catch (_) {
+        // best-effort
+      }
+      await state.supabase.removeChannel(state.ownershipChannel);
+      state.ownershipChannel = null;
+    }
+
+    // Step 2: Delete all owned rooms now that ownershipChannel is gone
     const otherRooms = state.ownedRooms.filter((r) => r.code !== state.room);
     await Promise.allSettled(
       otherRooms.map((r) =>
@@ -688,13 +707,9 @@ async function signOutHost() {
 
     state.ownedRooms = [];
     saveOwnedRooms();
+    renderRoomSwitcher();
 
-    if (state.ownershipChannel) {
-      await state.supabase.removeChannel(state.ownershipChannel);
-      state.ownershipChannel = null;
-    }
-
-    const { error } = await state.supabase.auth.signOut();
+    const { error } = await state.supabase.auth.signOut({ scope: "global" });
 
     if (error) {
       throw error;
@@ -1154,14 +1169,12 @@ function subscribeOwnership() {
         // deleteRoom() already calls unregisterOwnedRoom when this device is the
         // one doing the deletion, so calling it again is harmless (idempotent).
         unregisterOwnedRoom(code);
-        // If the deleted room is the one currently open on this device, navigate away
+        // If the deleted room is the one currently open on this device, navigate away.
+        // Always go to index.html (not switchToRoom) to avoid landing on another room
+        // that may also be in the process of being deleted (e.g. during remote sign-out),
+        // which would cause ensureRoomExists() to re-create the deleted room.
         if (code === state.room) {
-          const next = state.ownedRooms[state.ownedRooms.length - 1];
-          if (next) {
-            switchToRoom(next.code);
-          } else {
-            window.location.href = "index.html";
-          }
+          window.location.href = "index.html";
         }
       },
     )
@@ -1186,6 +1199,28 @@ function subscribeOwnership() {
         }
       },
     )
+    .on(
+      "broadcast",
+      { event: "sign-out" },
+      async () => {
+        // Another device signed out this account.
+        // Clear owned rooms from localStorage so the room count is not stale after re-login.
+        try {
+          window.localStorage.removeItem(
+            HOST_OWNED_ROOMS_STORAGE_KEY + "-" + state.userId,
+          );
+        } catch (_) {
+          // best-effort
+        }
+        // Clear the local session so index.html shows as signed out.
+        try {
+          await state.supabase.auth.signOut({ scope: "local" });
+        } catch (_) {
+          // best-effort
+        }
+        redirectToLogin();
+      },
+    )
     .subscribe();
 }
 
@@ -1206,7 +1241,10 @@ async function syncOwnedRoomsFromDB() {
       return;
     }
 
+    const dbCodes = new Set(data.map((r) => r.room_code));
     let changed = false;
+
+    // Add rooms that exist in DB but not locally
     for (const row of data) {
       const existing = state.ownedRooms.find((r) => r.code === row.room_code);
       if (!existing) {
@@ -1216,6 +1254,17 @@ async function syncOwnedRoomsFromDB() {
         existing.name = row.room_name;
         changed = true;
       }
+    }
+
+    // Remove rooms that exist locally but were deleted from DB.
+    // Always keep state.room — it may not be in the DB yet (ensureRoomExists
+    // runs after this sync completes, so the current room hasn't been written yet).
+    const before = state.ownedRooms.length;
+    state.ownedRooms = state.ownedRooms.filter(
+      (r) => r.code === state.room || dbCodes.has(r.code),
+    );
+    if (state.ownedRooms.length !== before) {
+      changed = true;
     }
 
     if (changed) {

@@ -29,6 +29,23 @@ const supabase = createSupabaseBrowserClient();
 
 let currentGeneratedRoom = "";
 let hostAuthenticated = false;
+let currentUserId = "";
+let ownershipChannel = null;
+
+const MAX_OWNED_ROOMS = 5;
+const HOST_OWNED_ROOMS_STORAGE_KEY = "pila-host-owned-rooms";
+
+function getOwnedRoomCount(userId) {
+  try {
+    const raw = window.localStorage.getItem(
+      HOST_OWNED_ROOMS_STORAGE_KEY + "-" + userId,
+    );
+    const rooms = JSON.parse(raw);
+    return Array.isArray(rooms) ? rooms.length : 0;
+  } catch (_) {
+    return 0;
+  }
+}
 
 function setAuthDrawerOpen(flag) {
   authDrawer.hidden = !flag;
@@ -119,7 +136,9 @@ function getContinueRoom(userId) {
 
 async function refreshContinueButton(userId) {
   if (!userId || !supabase) {
-    continueHostButton.hidden = true;
+    continueHostButton.disabled = true;
+    continueHostButton.title = "Sign in to resume a room";
+    delete continueHostButton.dataset.room;
     return;
   }
 
@@ -137,16 +156,20 @@ async function refreshContinueButton(userId) {
         .maybeSingle();
 
       if (dbRoom) {
-        continueHostButton.hidden = false;
+        continueHostButton.disabled = false;
         continueHostButton.dataset.room = dbRoom.room_code;
         continueHostButton.title =
           "Continue: " +
           (dbRoom.room_name || dbRoom.room_code.toUpperCase());
       } else {
-        continueHostButton.hidden = true;
+        continueHostButton.disabled = true;
+        continueHostButton.title = "No active rooms to resume";
+        delete continueHostButton.dataset.room;
       }
     } catch (_) {
-      continueHostButton.hidden = true;
+      continueHostButton.disabled = true;
+      continueHostButton.title = "No active rooms to resume";
+      delete continueHostButton.dataset.room;
     }
     return;
   }
@@ -160,15 +183,19 @@ async function refreshContinueButton(userId) {
       .maybeSingle();
 
     if (data) {
-      continueHostButton.hidden = false;
+      continueHostButton.disabled = false;
       continueHostButton.dataset.room = room.code;
       continueHostButton.title =
         "Continue: " + (room.name || room.code.toUpperCase());
     } else {
-      continueHostButton.hidden = true;
+      continueHostButton.disabled = true;
+      continueHostButton.title = "No active rooms to resume";
+      delete continueHostButton.dataset.room;
     }
   } catch (_) {
-    continueHostButton.hidden = true;
+    continueHostButton.disabled = true;
+    continueHostButton.title = "No active rooms to resume";
+    delete continueHostButton.dataset.room;
   }
 }
 
@@ -184,23 +211,70 @@ function renderAuthState(session) {
   if (hostAuthenticated) {
     const email = session.user.email || "host user";
     const userId = session.user.id || "";
+    currentUserId = userId;
     accountButtonLabel.textContent = email;
     authSummary.textContent = "Signed in as " + email;
     authStatus.textContent = "Signed in as " + email + ".";
     refreshContinueButton(userId);
+    subscribeOwnershipIndex(userId);
   } else {
     accountButtonLabel.textContent = "Host Login";
     authSummary.textContent = "Not signed in";
     authStatus.textContent = "Host sign-in required before opening a room.";
-    continueHostButton.hidden = true;
+    continueHostButton.disabled = true;
+    continueHostButton.title = "Sign in to resume a room";
+    delete continueHostButton.dataset.room;
+    currentUserId = "";
+    if (ownershipChannel && supabase) {
+      supabase.removeChannel(ownershipChannel);
+      ownershipChannel = null;
+    }
   }
 
   refreshGeneratedRoom();
 }
 
-function openHost() {
+async function openHost() {
   if (!hostAuthenticated) {
     hostStatus.textContent = "Sign in with the host account first.";
+    return;
+  }
+
+  // Always validate against DB — localStorage may be empty or stale (e.g. cleared after remote sign-out)
+  if (currentUserId && supabase) {
+    try {
+      const { count } = await supabase
+        .from("queue_rooms")
+        .select("*", { count: "exact", head: true })
+        .eq("owner_id", currentUserId);
+      if ((count ?? 0) >= MAX_OWNED_ROOMS) {
+        hostStatus.textContent =
+          "Room limit reached (" +
+          MAX_OWNED_ROOMS +
+          "/" +
+          MAX_OWNED_ROOMS +
+          "). Terminate an existing room before opening a new one.";
+        return;
+      }
+    } catch (_) {
+      // DB check failed — fall back to localStorage
+      if (getOwnedRoomCount(currentUserId) >= MAX_OWNED_ROOMS) {
+        hostStatus.textContent =
+          "Room limit reached (" +
+          MAX_OWNED_ROOMS +
+          "/" +
+          MAX_OWNED_ROOMS +
+          "). Terminate an existing room before opening a new one.";
+        return;
+      }
+    }
+  } else if (getOwnedRoomCount(currentUserId) >= MAX_OWNED_ROOMS) {
+    hostStatus.textContent =
+      "Room limit reached (" +
+      MAX_OWNED_ROOMS +
+      "/" +
+      MAX_OWNED_ROOMS +
+      "). Terminate an existing room before opening a new one.";
     return;
   }
 
@@ -267,21 +341,16 @@ async function signOutHost() {
   logoutButton.disabled = true;
 
   try {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      throw error;
-    }
-
-    hostEmailInput.disabled = false;
-    hostPasswordInput.disabled = false;
-    renderAuthState(null);
-    setAuthDrawerOpen(false);
-  } catch (error) {
-    console.error(error);
-    authStatus.textContent = "Unable to sign out right now.";
-    logoutButton.disabled = false;
+    await supabase.auth.signOut();
+  } catch (_) {
+    // Token may already be revoked (e.g. signed out globally from another device).
+    // Swallow the error and clear local state regardless.
   }
+
+  hostEmailInput.disabled = false;
+  hostPasswordInput.disabled = false;
+  renderAuthState(null);
+  setAuthDrawerOpen(false);
 }
 
 function parseJoinValue(value) {
@@ -376,6 +445,56 @@ async function openJoinValue(value) {
 }
 
 openHostButton.addEventListener("click", openHost);
+function subscribeOwnershipIndex(userId) {
+  if (!supabase || !userId) return;
+  // Tear down any previous subscription (e.g. on re-login)
+  if (ownershipChannel) {
+    supabase.removeChannel(ownershipChannel);
+    ownershipChannel = null;
+  }
+
+  ownershipChannel = supabase
+    .channel("host-ownership-" + userId)
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "queue_rooms" },
+      (payload) => {
+        if (payload.new?.owner_id !== userId) return;
+        // A new room was created for this account (e.g. on another device)
+        refreshContinueButton(userId);
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "DELETE", schema: "public", table: "queue_rooms" },
+      () => {
+        // A room was deleted — re-check whether any rooms remain
+        refreshContinueButton(userId);
+      },
+    )
+    .on(
+      "broadcast",
+      { event: "sign-out" },
+      async () => {
+        // Another device signed out this account — clear local state and update UI.
+        try {
+          window.localStorage.removeItem(
+            HOST_OWNED_ROOMS_STORAGE_KEY + "-" + userId,
+          );
+        } catch (_) {
+          // best-effort
+        }
+        try {
+          await supabase.auth.signOut({ scope: "local" });
+        } catch (_) {
+          // best-effort — token may already be revoked
+        }
+        renderAuthState(null);
+        setAuthDrawerOpen(false);
+      },
+    )
+    .subscribe();
+}
 continueHostButton.addEventListener("click", () => {
   const room = continueHostButton.dataset.room;
   if (room) {
