@@ -1122,6 +1122,44 @@ function unregisterOwnedRoom(code) {
   renderRoomSwitcher();
 }
 
+async function syncOwnedRoomsFromDB() {
+  if (!state.supabase || !state.userId) {
+    return;
+  }
+
+  try {
+    const { data, error } = await state.supabase
+      .from("queue_rooms")
+      .select("room_code, room_name")
+      .eq("owner_id", state.userId)
+      .order("updated_at", { ascending: false })
+      .limit(MAX_OWNED_ROOMS);
+
+    if (error || !Array.isArray(data)) {
+      return;
+    }
+
+    let changed = false;
+    for (const row of data) {
+      const existing = state.ownedRooms.find((r) => r.code === row.room_code);
+      if (!existing) {
+        state.ownedRooms.push({ code: row.room_code, name: row.room_name || "" });
+        changed = true;
+      } else if (row.room_name && !existing.name) {
+        existing.name = row.room_name;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      saveOwnedRooms();
+      renderRoomSwitcher();
+    }
+  } catch (_) {
+    // silent — DB may not have owner_id column yet
+  }
+}
+
 function renderRoomSwitcher() {
   if (!elements.roomSwitcher) {
     return;
@@ -1217,6 +1255,9 @@ async function boot() {
   loadOwnedRooms();
   registerOwnedRoom(state.room, state.roomName);
   render();
+
+  // Populate tabs with all DB-owned rooms (important on new/other devices)
+  void syncOwnedRoomsFromDB();
 
   state.supabase.auth.onAuthStateChange((event, session) => {
     if (event === "SIGNED_OUT" || !session) {
