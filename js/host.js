@@ -46,7 +46,7 @@ const elements = {
   endQueueModalTitle: document.getElementById("endQueueModalTitle"),
   endQueueModalText: document.getElementById("endQueueModalText"),
   cancelEndQueueButton: document.getElementById("cancelEndQueueButton"),
-  confirmEndQueueButton: document.getElementById("confirmEndQueueButton")
+  confirmEndQueueButton: document.getElementById("confirmEndQueueButton"),
 };
 
 const state = {
@@ -71,7 +71,7 @@ const state = {
   alertChannel: null,
   presenceChannel: null,
   sessionId: window.crypto.randomUUID(),
-  speechVoices: []
+  speechVoices: [],
 };
 
 function renderAccount() {
@@ -101,12 +101,15 @@ function loadHostSettings() {
 
 function persistHostSettings() {
   try {
-    window.localStorage.setItem(HOST_SETTINGS_STORAGE_KEY, JSON.stringify({
-      autoSpeakOnAdvance: state.autoSpeakOnAdvance,
-      autoAlertOnAdvance: state.autoAlertOnAdvance,
-      muteHostSpeak: state.muteHostSpeak,
-      muteHostChime: state.muteHostChime
-    }));
+    window.localStorage.setItem(
+      HOST_SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        autoSpeakOnAdvance: state.autoSpeakOnAdvance,
+        autoAlertOnAdvance: state.autoAlertOnAdvance,
+        muteHostSpeak: state.muteHostSpeak,
+        muteHostChime: state.muteHostChime,
+      }),
+    );
   } catch (error) {
     console.error(error);
   }
@@ -114,11 +117,14 @@ function persistHostSettings() {
 
 function renderSettings() {
   elements.settingsPanel.hidden = !state.settingsOpen;
-  elements.settingsButton.setAttribute("aria-expanded", String(state.settingsOpen));
+  elements.settingsButton.setAttribute(
+    "aria-expanded",
+    String(state.settingsOpen),
+  );
   elements.autoSpeakToggle.checked = state.autoSpeakOnAdvance;
   elements.autoAlertToggle.checked = state.autoAlertOnAdvance;
-  elements.muteHostSpeakToggle.checked = state.muteHostSpeak;
-  elements.muteHostChimeToggle.checked = state.muteHostChime;
+  elements.muteHostSpeakToggle.checked = !state.muteHostSpeak;
+  elements.muteHostChimeToggle.checked = !state.muteHostChime;
 }
 
 function toggleSettingsPanel() {
@@ -183,7 +189,7 @@ function openEndQueueModal() {
     text: "This will delete the room and disconnect all client screens currently watching this queue.",
     confirmLabel: "End Queue",
     action: "end-queue",
-    returnFocus: elements.endQueueButton
+    returnFocus: elements.endQueueButton,
   });
 }
 
@@ -193,7 +199,7 @@ function openResetModal() {
     text: "This will set the current queue number back to zero for everyone watching this room.",
     confirmLabel: "Reset Queue",
     action: "reset-queue",
-    returnFocus: elements.resetButton
+    returnFocus: elements.resetButton,
   });
 }
 
@@ -250,7 +256,10 @@ function formatTime(value) {
     return "Waiting";
   }
 
-  const diffSeconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000));
+  const diffSeconds = Math.max(
+    0,
+    Math.round((Date.now() - new Date(value).getTime()) / 1000),
+  );
   if (diffSeconds < 5) {
     return "Just now";
   }
@@ -368,7 +377,7 @@ function scoreAnnouncementVoice(voice) {
     "victoria",
     "zira",
     "aria",
-    "jenny"
+    "jenny",
   ];
 
   rankedVoiceNames.forEach((preferredName, index) => {
@@ -399,12 +408,20 @@ function chooseAnnouncementVoice() {
     return null;
   }
 
-  const englishVoices = voices.filter((voice) => /^en(-|_)?/i.test(voice.lang || ""));
+  const englishVoices = voices.filter((voice) =>
+    /^en(-|_)?/i.test(voice.lang || ""),
+  );
   const rankedVoices = englishVoices.length ? englishVoices : voices;
 
-  return rankedVoices
-    .slice()
-    .sort((leftVoice, rightVoice) => scoreAnnouncementVoice(rightVoice) - scoreAnnouncementVoice(leftVoice))[0] || null;
+  return (
+    rankedVoices
+      .slice()
+      .sort(
+        (leftVoice, rightVoice) =>
+          scoreAnnouncementVoice(rightVoice) -
+          scoreAnnouncementVoice(leftVoice),
+      )[0] || null
+  );
 }
 
 async function speakQueueNumber() {
@@ -412,14 +429,22 @@ async function speakQueueNumber() {
     return;
   }
 
-  if (!("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance !== "function") {
+  if (
+    !("speechSynthesis" in window) ||
+    typeof window.SpeechSynthesisUtterance !== "function"
+  ) {
     setStatus("Speech not supported");
     return;
   }
 
   await waitForSpeechVoices();
 
-  const announcementText = "Now <break time='0.04s'/> serving, number " + state.currentNumber + ". <break time='0.5s'/> Now <break time='0.04s'/> serving, number " + state.currentNumber + ".";
+  const announcementText =
+    "Now <break time='0.04s'/> serving, number " +
+    state.currentNumber +
+    ". <break time='0.5s'/> Now <break time='0.04s'/> serving, number " +
+    state.currentNumber +
+    ".";
   const utterance = new window.SpeechSynthesisUtterance(announcementText);
   const selectedVoice = chooseAnnouncementVoice();
 
@@ -491,8 +516,8 @@ async function sendClientAlertRipple() {
       payload: {
         room: state.room,
         currentNumber: state.currentNumber,
-        triggeredAt: new Date().toISOString()
-      }
+        triggeredAt: new Date().toISOString(),
+      },
     });
 
     if (channelStatus !== "ok") {
@@ -519,8 +544,8 @@ async function sendClientSpeakNumber() {
       payload: {
         room: state.room,
         currentNumber: state.currentNumber,
-        triggeredAt: new Date().toISOString()
-      }
+        triggeredAt: new Date().toISOString(),
+      },
     });
 
     if (channelStatus !== "ok") {
@@ -602,7 +627,7 @@ function render() {
 
   QRCode.toCanvas(elements.qrCanvas, clientUrl, {
     width: 220,
-    margin: 1
+    margin: 1,
   }).catch((error) => {
     console.error(error);
   });
@@ -659,7 +684,10 @@ function handleRoomDeleted(message) {
 async function ensureRoomExists() {
   const { error } = await state.supabase
     .from("queue_rooms")
-    .upsert({ room_code: state.room }, { onConflict: "room_code", ignoreDuplicates: true });
+    .upsert(
+      { room_code: state.room },
+      { onConflict: "room_code", ignoreDuplicates: true },
+    );
 
   if (error) {
     throw error;
@@ -738,7 +766,10 @@ async function setQueueNumber(nextNumber, options = {}) {
     await ensureRoomExists();
     const { error } = await state.supabase
       .from("queue_rooms")
-      .update({ current_number: clampedNumber, updated_at: new Date().toISOString() })
+      .update({
+        current_number: clampedNumber,
+        updated_at: new Date().toISOString(),
+      })
       .eq("room_code", state.room);
 
     if (error) {
@@ -758,14 +789,18 @@ async function setQueueNumber(nextNumber, options = {}) {
 async function changeQueue(delta) {
   await fetchRoom();
   await setQueueNumber((state.currentNumber || 0) + delta, {
-    source: delta > 0 ? "next" : "back"
+    source: delta > 0 ? "next" : "back",
   });
 }
 
 async function submitQueueNumber() {
   const parsedValue = Number.parseInt(elements.setNumberInput.value, 10);
 
-  if (!Number.isFinite(parsedValue) || parsedValue < 0 || parsedValue > MAX_QUEUE_NUMBER) {
+  if (
+    !Number.isFinite(parsedValue) ||
+    parsedValue < 0 ||
+    parsedValue > MAX_QUEUE_NUMBER
+  ) {
     setStatus("Enter a queue number from 0 to 99999");
     elements.setNumberInput.focus();
     return;
@@ -786,7 +821,7 @@ async function subscribe() {
         event: "*",
         schema: "public",
         table: "queue_rooms",
-        filter: "room_code=eq." + state.room
+        filter: "room_code=eq." + state.room,
       },
       (payload) => {
         if (payload.eventType === "DELETE") {
@@ -802,7 +837,7 @@ async function subscribe() {
         }
         state.roomExists = true;
         render();
-      }
+      },
     )
     .subscribe((status) => {
       if (status === "SUBSCRIBED") {
@@ -810,13 +845,16 @@ async function subscribe() {
       }
     });
 
-  state.presenceChannel = state.supabase.channel("room-watchers-" + state.room, {
-    config: {
-      presence: {
-        key: "host-" + state.sessionId
-      }
-    }
-  });
+  state.presenceChannel = state.supabase.channel(
+    "room-watchers-" + state.room,
+    {
+      config: {
+        presence: {
+          key: "host-" + state.sessionId,
+        },
+      },
+    },
+  );
 
   state.presenceChannel
     .on("presence", { event: "sync" }, () => {
@@ -838,7 +876,7 @@ async function subscribe() {
           await state.presenceChannel.track({
             role: "host",
             room: state.room,
-            online_at: new Date().toISOString()
+            online_at: new Date().toISOString(),
           });
           updateWatcherCount();
           if (!settled) {
@@ -950,7 +988,9 @@ async function boot() {
   const params = new URLSearchParams(window.location.search);
   const requestedRoom = params.get("room");
   const requestedRoomName = params.get("name");
-  state.room = requestedRoom ? sanitizeRoomCode(requestedRoom) : generateRoomCode();
+  state.room = requestedRoom
+    ? sanitizeRoomCode(requestedRoom)
+    : generateRoomCode();
   state.roomName = sanitizeRoomName(requestedRoomName);
   syncRoomInUrl(state.room);
   render();
@@ -1005,10 +1045,10 @@ elements.autoAlertToggle.addEventListener("change", (event) => {
   updateHostSetting("autoAlertOnAdvance", event.target.checked);
 });
 elements.muteHostSpeakToggle.addEventListener("change", (event) => {
-  updateHostSetting("muteHostSpeak", event.target.checked);
+  updateHostSetting("muteHostSpeak", !event.target.checked);
 });
 elements.muteHostChimeToggle.addEventListener("change", (event) => {
-  updateHostSetting("muteHostChime", event.target.checked);
+  updateHostSetting("muteHostChime", !event.target.checked);
 });
 elements.saveRoomNameButton.addEventListener("click", saveRoomName);
 elements.setNumberButton.addEventListener("click", submitQueueNumber);
@@ -1056,10 +1096,10 @@ elements.endQueueModal.addEventListener("click", (event) => {
 
 document.addEventListener("click", (event) => {
   if (
-    state.settingsOpen
-    && event.target !== elements.settingsButton
-    && !elements.settingsButton.contains(event.target)
-    && !elements.settingsPanel.contains(event.target)
+    state.settingsOpen &&
+    event.target !== elements.settingsButton &&
+    !elements.settingsButton.contains(event.target) &&
+    !elements.settingsPanel.contains(event.target)
   ) {
     closeSettingsPanel();
   }

@@ -952,7 +952,7 @@ a.button[aria-disabled="true"] {
 
 .header-popup-section .toggle-row {
   min-height: 38px;
-  padding: 0 6px 0 22px;
+  padding: 0 6px 0 34px;
   line-height: 1.15;
 }
 
@@ -1003,7 +1003,7 @@ a.button[aria-disabled="true"] {
 }
 
 .toggle-row:hover {
-  background: rgba(47, 111, 179, 0.08);
+  background: none;
 }
 
 .header-popup-divider {
