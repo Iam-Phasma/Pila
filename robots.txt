@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /host.html
+Disallow: /client.html
+
+Sitemap: https://iam-phasma.github.io/Pila/sitemap.xml
