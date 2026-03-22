@@ -20,6 +20,7 @@ const logoutButton = document.getElementById("logoutButton");
 const authStatus = document.getElementById("authStatus");
 const joinInput = document.getElementById("joinInput");
 const openHostButton = document.getElementById("openHostButton");
+const continueHostButton = document.getElementById("continueHostButton");
 const joinFromInputButton = document.getElementById("joinFromInputButton");
 const joinStatus = document.getElementById("joinStatus");
 const configNotice = document.getElementById("configNotice");
@@ -48,9 +49,10 @@ function setJoinStatus(message) {
   }
 }
 
-const detector = typeof window.BarcodeDetector !== "undefined"
-  ? new window.BarcodeDetector({ formats: ["qr_code"] })
-  : null;
+const detector =
+  typeof window.BarcodeDetector !== "undefined"
+    ? new window.BarcodeDetector({ formats: ["qr_code"] })
+    : null;
 
 function generateRoomCode(length = GENERATED_ROOM_LENGTH) {
   const letters = "abcdefghjkmnpqrstuvwxyz";
@@ -95,9 +97,70 @@ function refreshGeneratedRoom() {
   currentGeneratedRoom = generateRoomCode();
   generatedRoomCode.textContent = currentGeneratedRoom.toUpperCase();
   if (hostAuthenticated) {
-    hostStatus.textContent = "Opening Host will start room code " + currentGeneratedRoom.toUpperCase() + ".";
+    hostStatus.textContent =
+      "Opening Host will start room code " +
+      currentGeneratedRoom.toUpperCase() +
+      ".";
   } else {
     hostStatus.textContent = "Sign in first before opening a host room.";
+  }
+}
+
+function getContinueRoom(userId) {
+  if (!userId) {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem("pila-host-owned-rooms-" + userId);
+
+    if (!raw) {
+      return null;
+    }
+
+    const rooms = JSON.parse(raw);
+
+    if (!Array.isArray(rooms) || rooms.length === 0) {
+      return null;
+    }
+
+    return rooms[rooms.length - 1];
+  } catch (_) {
+    return null;
+  }
+}
+
+async function refreshContinueButton(userId) {
+  if (!userId || !supabase) {
+    continueHostButton.hidden = true;
+    return;
+  }
+
+  const room = getContinueRoom(userId);
+
+  if (!room) {
+    continueHostButton.hidden = true;
+    return;
+  }
+
+  // Verify the room still exists in the DB
+  try {
+    const { data } = await supabase
+      .from("queue_rooms")
+      .select("room_code")
+      .eq("room_code", room.code)
+      .maybeSingle();
+
+    if (data) {
+      continueHostButton.hidden = false;
+      continueHostButton.dataset.room = room.code;
+      continueHostButton.title =
+        "Continue: " + (room.name || room.code.toUpperCase());
+    } else {
+      continueHostButton.hidden = true;
+    }
+  } catch (_) {
+    continueHostButton.hidden = true;
   }
 }
 
@@ -112,13 +175,16 @@ function renderAuthState(session) {
 
   if (hostAuthenticated) {
     const email = session.user.email || "host user";
+    const userId = session.user.id || "";
     accountButtonLabel.textContent = email;
     authSummary.textContent = "Signed in as " + email;
     authStatus.textContent = "Signed in as " + email + ".";
+    refreshContinueButton(userId);
   } else {
     accountButtonLabel.textContent = "Host Login";
     authSummary.textContent = "Not signed in";
     authStatus.textContent = "Host sign-in required before opening a room.";
+    continueHostButton.hidden = true;
   }
 
   refreshGeneratedRoom();
@@ -141,7 +207,10 @@ function togglePasswordVisibility() {
   const showingPassword = hostPasswordInput.type === "password";
 
   hostPasswordInput.type = showingPassword ? "text" : "password";
-  togglePasswordButton.setAttribute("aria-label", showingPassword ? "Hide password" : "Show password");
+  togglePasswordButton.setAttribute(
+    "aria-label",
+    showingPassword ? "Hide password" : "Show password",
+  );
   togglePasswordButton.setAttribute("aria-pressed", String(showingPassword));
 }
 
@@ -163,7 +232,10 @@ async function signInHost() {
   authStatus.textContent = "Signing in...";
 
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (error) {
       throw error;
@@ -211,7 +283,11 @@ function parseJoinValue(value) {
     return null;
   }
 
-  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("client.html?") || trimmed.startsWith("/")) {
+  if (
+    /^https?:\/\//i.test(trimmed) ||
+    trimmed.startsWith("client.html?") ||
+    trimmed.startsWith("/")
+  ) {
     const url = new URL(trimmed, window.location.href);
     const roomFromUrl = url.searchParams.get("room");
 
@@ -226,7 +302,7 @@ function parseJoinValue(value) {
 
     return {
       room,
-      target: buildRelativeUrl("client.html", room)
+      target: buildRelativeUrl("client.html", room),
     };
   }
 
@@ -237,7 +313,7 @@ function parseJoinValue(value) {
 
   return {
     room,
-    target: buildRelativeUrl("client.html", room)
+    target: buildRelativeUrl("client.html", room),
   };
 }
 
@@ -263,7 +339,9 @@ async function openJoinValue(value) {
   const target = parseJoinValue(value);
 
   if (!target) {
-    setJoinStatus("Enter a valid room code in the format A12345, or paste a matching client link.");
+    setJoinStatus(
+      "Enter a valid room code in the format A12345, or paste a matching client link.",
+    );
     return;
   }
 
@@ -273,7 +351,9 @@ async function openJoinValue(value) {
     const exists = await roomExists(target.room);
 
     if (!exists) {
-      setJoinStatus("Room not found. Check the code or ask the host for a new link.");
+      setJoinStatus(
+        "Room not found. Check the code or ask the host for a new link.",
+      );
       return;
     }
 
@@ -281,31 +361,36 @@ async function openJoinValue(value) {
     window.location.href = target.target;
   } catch (error) {
     console.error(error);
-    setJoinStatus("Unable to validate the room right now. Try again in a moment.");
+    setJoinStatus(
+      "Unable to validate the room right now. Try again in a moment.",
+    );
   }
 }
 
 async function startScanner() {
   if (!detector) {
-    scannerStatus.textContent = "QR scanning is not supported in this browser. Paste the client link instead.";
+    scannerStatus.textContent =
+      "QR scanning is not supported in this browser. Paste the client link instead.";
     return;
   }
 
   try {
     scannerStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" },
-      audio: false
+      audio: false,
     });
     scannerVideo.srcObject = scannerStream;
     await scannerVideo.play();
     scannerVideo.classList.add("show");
     scannerOverlay.classList.add("show");
     scannerPlaceholder.style.display = "none";
-    scannerStatus.textContent = "Scanner running. Point the camera at the host QR code.";
+    scannerStatus.textContent =
+      "Scanner running. Point the camera at the host QR code.";
     scanLoop();
   } catch (error) {
     console.error(error);
-    scannerStatus.textContent = "Unable to access the camera. Paste the client link instead.";
+    scannerStatus.textContent =
+      "Unable to access the camera. Paste the client link instead.";
   }
 }
 
@@ -347,13 +432,21 @@ async function scanLoop() {
 }
 
 openHostButton.addEventListener("click", openHost);
+continueHostButton.addEventListener("click", () => {
+  const room = continueHostButton.dataset.room;
+  if (room) {
+    window.location.href = buildRelativeUrl("host.html", room);
+  }
+});
 loginButton.addEventListener("click", signInHost);
 logoutButton.addEventListener("click", signOutHost);
 togglePasswordButton.addEventListener("click", togglePasswordVisibility);
 accountToggleButton.addEventListener("click", () => {
   setAuthDrawerOpen(authDrawer.hidden);
 });
-joinFromInputButton.addEventListener("click", () => openJoinValue(joinInput.value));
+joinFromInputButton.addEventListener("click", () =>
+  openJoinValue(joinInput.value),
+);
 regenerateCodeButton.addEventListener("click", refreshGeneratedRoom);
 startScannerButton.addEventListener("click", startScanner);
 stopScannerButton.addEventListener("click", stopScanner);
@@ -370,7 +463,11 @@ window.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("click", (event) => {
-  if (!authDrawer.hidden && !authDrawer.contains(event.target) && !accountToggleButton.contains(event.target)) {
+  if (
+    !authDrawer.hidden &&
+    !authDrawer.contains(event.target) &&
+    !accountToggleButton.contains(event.target)
+  ) {
     setAuthDrawerOpen(false);
   }
 });

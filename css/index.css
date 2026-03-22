@@ -696,7 +696,7 @@ body::before {
 }
 
 .tool-group-host {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .scanner-card {
@@ -853,6 +853,16 @@ a.button {
 
 .secondary:hover {
   background: var(--hover-neutral-soft);
+}
+
+.success {
+  background: #1a7f4f;
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.success:hover {
+  background: #145f3c;
 }
 
 button:hover,

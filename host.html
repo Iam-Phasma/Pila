@@ -150,6 +150,32 @@
         realtime sync.
       </section>
 
+      <div class="room-switcher" id="roomSwitcher">
+        <div class="room-switcher-inner">
+          <button
+            class="room-switcher-add"
+            id="addRoomButton"
+            type="button"
+            title="Open a new room"
+          >
+            <svg
+              class="room-switcher-add-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 5v14" />
+              <path d="M5 12h14" />
+            </svg>
+            <span> New</span>
+          </button>
+        </div>
+      </div>
+
       <section class="layout">
         <article class="panel panel-main">
           <div class="panel-heading">
@@ -340,7 +366,7 @@
                   <span>Room Actions</span>
                 </p>
                 <p class="tool-card-copy">
-                  Reset, preview, or close the active queue.
+                  Reset, preview, or manage the active queue.
                 </p>
               </div>
               <div class="tool-group tool-group-manage">
@@ -374,15 +400,29 @@
                   </svg>
                   <span>Preview</span>
                 </a>
-                <button class="danger" id="endQueueButton">
+                <button class="secondary" id="endQueueButton" type="button">
                   <svg
                     class="control-button-icon"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
                   >
-                    <rect x="6" y="6" width="12" height="12" rx="1" />
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <path d="m16 17 5-5-5-5" />
+                    <path d="M21 12H9" />
                   </svg>
-                  <span>Close</span>
+                  <span>Close Tab</span>
+                </button>
+                <button class="danger" id="terminateButton" type="button">
+                  <svg
+                    class="control-button-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                  <span>Terminate</span>
                 </button>
               </div>
             </div>

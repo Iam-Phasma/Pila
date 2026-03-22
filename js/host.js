@@ -5,7 +5,9 @@ const DEFAULT_ROOM = "main";
 const GENERATED_ROOM_LENGTH = 6;
 const MAX_QUEUE_NUMBER = 99999;
 const MAX_ROOM_NAME_LENGTH = 30;
+const MAX_OWNED_ROOMS = 5;
 const HOST_SETTINGS_STORAGE_KEY = "pila-host-settings";
+const HOST_OWNED_ROOMS_STORAGE_KEY = "pila-host-owned-rooms";
 const ROOM_REGEX = /^[a-z0-9-]{1,32}$/;
 
 const elements = {
@@ -34,6 +36,9 @@ const elements = {
   setNumberInput: document.getElementById("setNumberInput"),
   setNumberButton: document.getElementById("setNumberButton"),
   endQueueButton: document.getElementById("endQueueButton"),
+  terminateButton: document.getElementById("terminateButton"),
+  roomSwitcher: document.getElementById("roomSwitcher"),
+  addRoomButton: document.getElementById("addRoomButton"),
   roomNameInput: document.getElementById("roomNameInput"),
   saveRoomNameButton: document.getElementById("saveRoomNameButton"),
   roomCodeInput: document.getElementById("roomCodeInput"),
@@ -72,6 +77,8 @@ const state = {
   presenceChannel: null,
   sessionId: window.crypto.randomUUID(),
   speechVoices: [],
+  ownedRooms: [],
+  userId: "",
 };
 
 function renderAccount() {
@@ -183,13 +190,13 @@ function openConfirmModal({ title, text, confirmLabel, action, returnFocus }) {
   elements.confirmEndQueueButton.focus();
 }
 
-function openEndQueueModal() {
+function openTerminateModal() {
   openConfirmModal({
-    title: "End this queue?",
-    text: "This will delete the room and disconnect all client screens currently watching this queue.",
-    confirmLabel: "End Queue",
+    title: "Terminate this queue?",
+    text: "This will permanently delete the room and disconnect all client screens watching this queue.",
+    confirmLabel: "Terminate Queue",
     action: "end-queue",
-    returnFocus: elements.endQueueButton,
+    returnFocus: elements.terminateButton,
   });
 }
 
@@ -581,6 +588,7 @@ async function runAdvanceActions(source) {
 async function saveRoomName() {
   const sanitizedRoomName = sanitizeRoomName(elements.roomNameInput.value);
   state.roomName = sanitizedRoomName;
+  registerOwnedRoom(state.room, sanitizedRoomName);
   render();
 
   if (!state.supabase || !isSupabaseConfigured()) {
@@ -642,9 +650,22 @@ async function signOutHost() {
   elements.signOutHostButton.disabled = true;
 
   try {
+    // Terminate all other owned rooms first
+    const otherRooms = state.ownedRooms.filter((r) => r.code !== state.room);
+    await Promise.allSettled(
+      otherRooms.map((r) =>
+        state.supabase.from("queue_rooms").delete().eq("room_code", r.code),
+      ),
+    );
+
     if (state.roomExists && !state.terminated) {
       await deleteRoom();
+    } else {
+      unregisterOwnedRoom(state.room);
     }
+
+    state.ownedRooms = [];
+    saveOwnedRooms();
 
     const { error } = await state.supabase.auth.signOut();
 
@@ -655,7 +676,7 @@ async function signOutHost() {
     redirectToLogin();
   } catch (error) {
     console.error(error);
-    setStatus("Unable to delete room and sign out");
+    setStatus("Unable to sign out");
     elements.signOutHostButton.disabled = false;
   }
 }
@@ -667,7 +688,7 @@ function setBusy(flag) {
   elements.resetButton.disabled = flag || !isSupabaseConfigured();
   elements.setNumberInput.disabled = flag || !isSupabaseConfigured();
   elements.setNumberButton.disabled = flag || !isSupabaseConfigured();
-  elements.endQueueButton.disabled = flag || !isSupabaseConfigured();
+  elements.terminateButton.disabled = flag || !isSupabaseConfigured();
 }
 
 function handleRoomDeleted(message) {
@@ -750,6 +771,7 @@ async function deleteRoom() {
       state.alertChannel = null;
     }
 
+    unregisterOwnedRoom(state.room);
     handleRoomDeleted("Queue ended");
   } catch (error) {
     console.error(error);
@@ -945,7 +967,16 @@ async function endQueueAndReturn() {
   try {
     elements.confirmEndQueueButton.disabled = true;
     await deleteRoom();
-    window.location.href = "index.html?room=" + encodeURIComponent(state.room);
+
+    // Navigate to another open room if available, otherwise fall back to dashboard
+    const nextRoom = state.ownedRooms[state.ownedRooms.length - 1];
+    if (nextRoom) {
+      const url = new URL("host.html", window.location.href);
+      url.searchParams.set("room", nextRoom.code);
+      window.location.href = url.toString();
+    } else {
+      window.location.href = "index.html";
+    }
   } catch (error) {
     console.error(error);
   } finally {
@@ -982,6 +1013,127 @@ async function confirmPendingAction() {
   }
 }
 
+function loadOwnedRooms() {
+  if (!state.userId) {
+    return;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(
+      HOST_OWNED_ROOMS_STORAGE_KEY + "-" + state.userId,
+    );
+
+    if (!raw) {
+      return;
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (Array.isArray(parsed)) {
+      state.ownedRooms = parsed.filter((r) => r && typeof r.code === "string");
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function saveOwnedRooms() {
+  if (!state.userId) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      HOST_OWNED_ROOMS_STORAGE_KEY + "-" + state.userId,
+      JSON.stringify(state.ownedRooms),
+    );
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function registerOwnedRoom(code, name) {
+  const existing = state.ownedRooms.find((r) => r.code === code);
+
+  if (existing) {
+    if (name) {
+      existing.name = name;
+    }
+  } else {
+    state.ownedRooms.push({ code, name: name || "" });
+  }
+
+  saveOwnedRooms();
+  renderRoomSwitcher();
+}
+
+function unregisterOwnedRoom(code) {
+  state.ownedRooms = state.ownedRooms.filter((r) => r.code !== code);
+  saveOwnedRooms();
+  renderRoomSwitcher();
+}
+
+function renderRoomSwitcher() {
+  if (!elements.roomSwitcher) {
+    return;
+  }
+
+  const rooms = state.ownedRooms;
+  elements.roomSwitcher.hidden = false;
+
+  const inner = elements.roomSwitcher.querySelector(".room-switcher-inner");
+  inner.querySelectorAll(".room-tab").forEach((el) => el.remove());
+
+  rooms.forEach((room) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className =
+      "room-tab" + (room.code === state.room ? " room-tab-active" : "");
+    btn.dataset.room = room.code;
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "room-tab-label";
+    labelSpan.textContent = room.name || room.code.toUpperCase();
+    btn.appendChild(labelSpan);
+    btn.addEventListener("click", () => switchToRoom(room.code));
+    inner.insertBefore(btn, elements.addRoomButton);
+  });
+
+  const atLimit = rooms.length >= MAX_OWNED_ROOMS;
+  elements.addRoomButton.disabled = atLimit;
+  elements.addRoomButton.title = atLimit
+    ? "Room limit reached (" + MAX_OWNED_ROOMS + "/" + MAX_OWNED_ROOMS + ")"
+    : "Open a new room";
+}
+
+function switchToRoom(code) {
+  if (code === state.room) {
+    return;
+  }
+
+  const url = new URL("host.html", window.location.href);
+  url.searchParams.set("room", code);
+  window.location.href = url.toString();
+}
+
+function openNewRoom() {
+  if (state.ownedRooms.length >= MAX_OWNED_ROOMS) {
+    setStatus(
+      "Room limit reached. Terminate an existing room before opening a new one.",
+    );
+    return;
+  }
+
+  const newCode = generateRoomCode();
+  registerOwnedRoom(newCode, "");
+  const url = new URL("host.html", window.location.href);
+  url.searchParams.set("room", newCode);
+  window.location.href = url.toString();
+}
+
+function closeTab() {
+  window.location.href = "index.html";
+}
+
 async function boot() {
   loadHostSettings();
   void waitForSpeechVoices();
@@ -1011,7 +1163,10 @@ async function boot() {
     return;
   }
 
+  state.userId = data.session.user.id || "";
   state.currentUserEmail = data.session.user.email || "host user";
+  loadOwnedRooms();
+  registerOwnedRoom(state.room, state.roomName);
   render();
 
   state.supabase.auth.onAuthStateChange((event, session) => {
@@ -1082,7 +1237,9 @@ elements.setNumberInput.addEventListener("keydown", (event) => {
     submitQueueNumber();
   }
 });
-elements.endQueueButton.addEventListener("click", openEndQueueModal);
+elements.endQueueButton.addEventListener("click", closeTab);
+elements.terminateButton.addEventListener("click", openTerminateModal);
+elements.addRoomButton.addEventListener("click", openNewRoom);
 elements.copyCodeButton.addEventListener("click", copyCode);
 elements.copyLinkButton.addEventListener("click", copyLink);
 elements.signOutHostButton.addEventListener("click", signOutHost);
