@@ -373,31 +373,52 @@ joinFromInputButton.addEventListener("click", () =>
 const cameraInput = document.getElementById("cameraInput");
 const scannerStatus = document.getElementById("scannerStatus");
 
-const detector =
-  typeof window.BarcodeDetector !== "undefined"
-    ? new window.BarcodeDetector({ formats: ["qr_code"] })
-    : null;
-
 async function scanImageFile(file) {
-  if (!detector) {
-    scannerStatus.textContent =
-      "QR scanning is not supported in this browser. Paste the client link instead.";
-    return;
-  }
-
   try {
     scannerStatus.textContent = "Scanning...";
-    const bitmap = await createImageBitmap(file);
-    const codes = await detector.detect(bitmap);
-    bitmap.close();
 
-    if (codes.length === 0) {
-      scannerStatus.textContent = "No QR code found. Try a clearer photo.";
-      return;
+    // Try native BarcodeDetector first (Android Chrome)
+    if (typeof window.BarcodeDetector !== "undefined") {
+      const det = new window.BarcodeDetector({ formats: ["qr_code"] });
+      const bitmap = await createImageBitmap(file);
+      const codes = await det.detect(bitmap);
+      bitmap.close();
+      if (codes.length > 0) {
+        scannerStatus.textContent = "";
+        await openJoinValue(codes[0].rawValue);
+        return;
+      }
     }
 
-    scannerStatus.textContent = "";
-    await openJoinValue(codes[0].rawValue);
+    // Fallback: jsQR via canvas (works on iOS Safari and all browsers)
+    if (typeof window.jsQR !== "undefined") {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = window.jsQR(
+        imageData.data,
+        imageData.width,
+        imageData.height,
+      );
+      if (code) {
+        scannerStatus.textContent = "";
+        await openJoinValue(code.data);
+        return;
+      }
+    }
+
+    scannerStatus.textContent = "No QR code found. Try a clearer photo.";
   } catch (error) {
     console.error(error);
     scannerStatus.textContent = "Could not read the image. Try again.";
