@@ -194,7 +194,7 @@ function openTerminateModal() {
   openConfirmModal({
     title: "Terminate this queue?",
     text: "This will permanently delete the room and disconnect all client screens watching this queue.",
-    confirmLabel: "Terminate Queue",
+    confirmLabel: "Terminate",
     action: "end-queue",
     returnFocus: elements.terminateButton,
   });
@@ -204,10 +204,29 @@ function openResetModal() {
   openConfirmModal({
     title: "Reset this queue?",
     text: "This will set the current queue number back to zero for everyone watching this room.",
-    confirmLabel: "Reset Queue",
+    confirmLabel: "Reset",
     action: "reset-queue",
     returnFocus: elements.resetButton,
   });
+}
+
+function openSignOutModal() {
+  if (!state.supabase) {
+    redirectToLogin();
+    return;
+  }
+
+  // Bypass the busy guard — sign-out should always be reachable
+  state.pendingConfirmation = "sign-out";
+  state.confirmReturnFocus = elements.signOutHostButton;
+  elements.endQueueModalTitle.textContent = "Sign out?";
+  elements.endQueueModalText.textContent =
+    state.roomExists && !state.terminated
+      ? "This will terminate your active queue and sign you out."
+      : "Are you sure you want to sign out?";
+  elements.confirmEndQueueButton.textContent = "Sign Out";
+  elements.endQueueModal.hidden = false;
+  elements.confirmEndQueueButton.focus();
 }
 
 function closeEndQueueModal() {
@@ -708,7 +727,7 @@ async function ensureRoomExists() {
   const { error } = await state.supabase
     .from("queue_rooms")
     .upsert(
-      { room_code: state.room },
+      { room_code: state.room, owner_id: state.userId || null },
       { onConflict: "room_code", ignoreDuplicates: true },
     );
 
@@ -1010,6 +1029,12 @@ async function confirmPendingAction() {
       state.confirmReturnFocus = null;
       await endQueueAndReturn();
     }
+
+    if (pendingAction === "sign-out") {
+      state.pendingConfirmation = null;
+      state.confirmReturnFocus = null;
+      await signOutHost();
+    }
   } finally {
     elements.confirmEndQueueButton.disabled = false;
   }
@@ -1244,7 +1269,7 @@ elements.terminateButton.addEventListener("click", openTerminateModal);
 elements.addRoomButton.addEventListener("click", openNewRoom);
 elements.copyCodeButton.addEventListener("click", copyCode);
 elements.copyLinkButton.addEventListener("click", copyLink);
-elements.signOutHostButton.addEventListener("click", signOutHost);
+elements.signOutHostButton.addEventListener("click", openSignOutModal);
 elements.cancelEndQueueButton.addEventListener("click", closeEndQueueModal);
 elements.confirmEndQueueButton.addEventListener("click", confirmPendingAction);
 elements.endQueueModal.addEventListener("click", (event) => {

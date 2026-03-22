@@ -126,7 +126,28 @@ async function refreshContinueButton(userId) {
   const room = getContinueRoom(userId);
 
   if (!room) {
-    continueHostButton.hidden = true;
+    // localStorage miss — fall back to querying DB by owner_id
+    try {
+      const { data: dbRoom } = await supabase
+        .from("queue_rooms")
+        .select("room_code, room_name")
+        .eq("owner_id", userId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (dbRoom) {
+        continueHostButton.hidden = false;
+        continueHostButton.dataset.room = dbRoom.room_code;
+        continueHostButton.title =
+          "Continue: " +
+          (dbRoom.room_name || dbRoom.room_code.toUpperCase());
+      } else {
+        continueHostButton.hidden = true;
+      }
+    } catch (_) {
+      continueHostButton.hidden = true;
+    }
     return;
   }
 
