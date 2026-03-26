@@ -1210,3 +1210,131 @@ video.show {
     font-size: clamp(2.6rem, 15vw, 4rem);
   }
 }
+
+/* ============================================
+   HCAPTCHA MODAL
+   ============================================ */
+
+@keyframes captchaFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes captchaPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.captcha-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(11, 28, 59, 0.42);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: captchaFadeIn 160ms ease;
+}
+
+.captcha-overlay[hidden] {
+  display: none;
+}
+
+.captcha-panel {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 48px rgba(11, 28, 59, 0.16);
+  padding: 28px 26px 26px;
+  width: 100%;
+  max-width: 400px;
+  animation: captchaPanelIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.captcha-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.captcha-header-text {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.captcha-header-text h3 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.captcha-shield-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--sea);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.captcha-close {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  color: rgba(11, 28, 59, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.captcha-close:hover {
+  background: var(--hover-danger-soft);
+  color: var(--red);
+}
+
+.captcha-close svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.captcha-desc {
+  margin: 0 0 20px;
+  font-size: 0.84rem;
+  color: rgba(11, 28, 59, 0.55);
+}
+
+.captcha-widget-wrap {
+  display: flex;
+  justify-content: center;
+  min-height: 78px;
+}

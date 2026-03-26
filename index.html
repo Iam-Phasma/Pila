@@ -58,6 +58,8 @@
     </script>
 
     <link rel="stylesheet" href="css/index.css" />
+    <!-- hCaptcha — replace data-sitekey with your real site key from hcaptcha.com -->
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
   </head>
   <body>
     <header class="sticky-header">
@@ -291,6 +293,47 @@
         </article>
       </section>
     </main>
+
+    <!-- hCaptcha verification modal -->
+    <div
+      class="captcha-overlay"
+      id="captchaModal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="captchaModalTitle"
+    >
+      <div class="captcha-panel">
+        <div class="captcha-header">
+          <div class="captcha-header-text">
+            <svg
+              class="captcha-shield-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 3 4 7v5c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V7l-8-4z"
+              />
+            </svg>
+            <h3 id="captchaModalTitle">Verify to Open Room</h3>
+          </div>
+          <button
+            class="captcha-close"
+            id="captchaCloseButton"
+            type="button"
+            aria-label="Cancel verification"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p class="captcha-desc">Quick check before your room goes live.</p>
+        <div class="captcha-widget-wrap">
+          <div id="hcaptchaWidget"></div>
+        </div>
+      </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script type="module" src="js/index.js"></script>

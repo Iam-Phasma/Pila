@@ -25,6 +25,15 @@ const joinFromInputButton = document.getElementById("joinFromInputButton");
 const joinStatus = document.getElementById("joinStatus");
 const configNotice = document.getElementById("configNotice");
 const adminPanelLink = document.getElementById("adminPanelLink");
+const captchaModal = document.getElementById("captchaModal");
+const captchaCloseButton = document.getElementById("captchaCloseButton");
+
+// hCaptcha — replace with your real site key from hcaptcha.com
+const HCAPTCHA_SITE_KEY = "fcc42bc6-e25c-48f2-85ea-497021987410";
+
+let captchaWidgetId = null;
+let pendingHostUrl = null;
+const CAPTCHA_SESSION_KEY = "pila-captcha-ok";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -320,8 +329,56 @@ async function openHost() {
     refreshGeneratedRoom();
   }
 
-  window.location.href = buildRelativeUrl("host.html", currentGeneratedRoom);
+  const targetUrl = buildRelativeUrl("host.html", currentGeneratedRoom);
+
+  if (sessionStorage.getItem(CAPTCHA_SESSION_KEY) === "1") {
+    window.location.href = targetUrl;
+    return;
+  }
+
+  openCaptchaModal(targetUrl);
 }
+
+function openCaptchaModal(url) {
+  pendingHostUrl = url;
+  captchaModal.hidden = false;
+  document.body.style.overflow = "hidden";
+
+  if (typeof hcaptcha !== "undefined") {
+    if (captchaWidgetId !== null) {
+      hcaptcha.reset(captchaWidgetId);
+    } else {
+      captchaWidgetId = hcaptcha.render("hcaptchaWidget", {
+        sitekey: HCAPTCHA_SITE_KEY,
+        callback: "_pilaOnCaptcha",
+        "error-callback": "_pilaOnCaptchaError",
+      });
+    }
+  }
+}
+
+function closeCaptchaModal() {
+  captchaModal.hidden = true;
+  document.body.style.overflow = "";
+  pendingHostUrl = null;
+  if (typeof hcaptcha !== "undefined" && captchaWidgetId !== null) {
+    hcaptcha.reset(captchaWidgetId);
+  }
+}
+
+window._pilaOnCaptcha = function (_token) {
+  sessionStorage.setItem(CAPTCHA_SESSION_KEY, "1");
+  const url = pendingHostUrl;
+  closeCaptchaModal();
+  if (url) {
+    window.location.href = url;
+  }
+};
+
+window._pilaOnCaptchaError = function () {
+  hostStatus.textContent = "Verification failed. Please try again.";
+  closeCaptchaModal();
+};
 
 function togglePasswordVisibility() {
   const showingPassword = hostPasswordInput.type === "password";
@@ -385,6 +442,7 @@ async function signOutHost() {
     // Swallow the error and clear local state regardless.
   }
 
+  sessionStorage.removeItem(CAPTCHA_SESSION_KEY);
   hostEmailInput.disabled = false;
   hostPasswordInput.disabled = false;
   renderAuthState(null);
@@ -481,6 +539,11 @@ async function openJoinValue(value) {
     );
   }
 }
+
+captchaCloseButton.addEventListener("click", closeCaptchaModal);
+captchaModal.addEventListener("click", (event) => {
+  if (event.target === captchaModal) closeCaptchaModal();
+});
 
 openHostButton.addEventListener("click", openHost);
 function subscribeOwnershipIndex(userId) {
