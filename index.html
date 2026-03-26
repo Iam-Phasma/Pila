@@ -127,61 +127,110 @@
             <div class="auth-drawer-content">
               <div class="auth-drawer-head">
                 <div>
-                  <h2>Persistent Account</h2>
+                  <h2>Host Account</h2>
                   <p>
-                    Optional. Sign in to resume rooms and keep your host
-                    identity across devices.
+                    Continue as a guest for a quick session, or sign in to
+                    resume rooms across devices.
                   </p>
                 </div>
               </div>
-              <label for="hostEmailInput">Email</label>
-              <input
-                id="hostEmailInput"
-                type="email"
-                placeholder="Host email"
-                autocomplete="username"
-              />
-              <label for="hostPasswordInput" class="field-gap">Password</label>
-              <div class="input-wrap input-wrap--password">
-                <span class="icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" role="img" focusable="false">
-                    <rect x="5" y="10" width="14" height="10" rx="2"></rect>
-                    <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
-                  </svg>
-                </span>
-                <input
-                  id="hostPasswordInput"
-                  type="password"
-                  placeholder="Host password"
-                  autocomplete="current-password"
-                />
+
+              <!-- Choice buttons (shown when not signed in) -->
+              <div class="auth-choice-group" id="authChoiceGroup">
                 <button
-                  id="togglePasswordButton"
-                  class="password-visibility-btn"
+                  class="auth-choice-btn auth-choice-guest"
+                  id="guestSignInButton"
                   type="button"
-                  aria-label="Show password"
-                  aria-pressed="false"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    role="img"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"
-                    ></path>
-                    <circle cx="12" cy="12" r="3"></circle>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M20 21a8 8 0 0 0-16 0" />
                   </svg>
+                  Continue as Guest
+                </button>
+                <button
+                  class="auth-choice-btn auth-choice-account"
+                  id="showAccountFormButton"
+                  type="button"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                    <path d="m4 7 8 6 8-6" />
+                  </svg>
+                  Sign in with Account
                 </button>
               </div>
-              <div class="actions auth-actions">
-                <button class="primary" id="loginButton">Sign In</button>
+
+              <!-- Email/password form (shown after choosing Account) -->
+              <div id="accountSignInForm" hidden>
+                <button
+                  class="auth-back-btn"
+                  id="backToChoiceButton"
+                  type="button"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m15 18-6-6 6-6" />
+                  </svg>
+                  Back
+                </button>
+                <div class="auth-form-fields">
+                  <label for="hostEmailInput">Email</label>
+                  <input
+                    id="hostEmailInput"
+                    type="email"
+                    placeholder="Host email"
+                    autocomplete="username"
+                  />
+                  <label for="hostPasswordInput" class="field-gap"
+                    >Password</label
+                  >
+                  <div class="input-wrap input-wrap--password">
+                    <span class="icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" role="img" focusable="false">
+                        <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                        <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                      </svg>
+                    </span>
+                    <input
+                      id="hostPasswordInput"
+                      type="password"
+                      placeholder="Host password"
+                      autocomplete="current-password"
+                    />
+                    <button
+                      id="togglePasswordButton"
+                      class="password-visibility-btn"
+                      type="button"
+                      aria-label="Show password"
+                      aria-pressed="false"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        role="img"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path
+                          d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"
+                        ></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="actions auth-actions">
+                    <button class="primary" id="loginButton">Sign In</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Signed-in state actions -->
+              <div id="signedInActions" hidden>
                 <button class="secondary" id="logoutButton" type="button">
                   Sign Out
                 </button>
               </div>
-              <div class="status" id="authStatus">Checking login status...</div>
+
+              <div class="status" id="authStatus">Checking...</div>
             </div>
           </section>
         </div>
@@ -216,10 +265,10 @@
                 <p class="tool-card-title">Create Room</p>
               </div>
               <div class="tool-group tool-group-host">
-                <button class="secondary" id="regenerateCodeButton">
+                <button class="secondary" id="regenerateCodeButton" disabled>
                   Regenerate
                 </button>
-                <button class="primary" id="openHostButton">Open Host</button>
+                <button class="primary" id="openHostButton" disabled>Open Host</button>
                 <button class="success" id="continueHostButton" disabled>
                   Resume
                 </button>

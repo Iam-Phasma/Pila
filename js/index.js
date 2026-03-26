@@ -25,6 +25,12 @@ const joinFromInputButton = document.getElementById("joinFromInputButton");
 const joinStatus = document.getElementById("joinStatus");
 const configNotice = document.getElementById("configNotice");
 const adminPanelLink = document.getElementById("adminPanelLink");
+const authChoiceGroup = document.getElementById("authChoiceGroup");
+const accountSignInForm = document.getElementById("accountSignInForm");
+const signedInActions = document.getElementById("signedInActions");
+const guestSignInButton = document.getElementById("guestSignInButton");
+const showAccountFormButton = document.getElementById("showAccountFormButton");
+const backToChoiceButton = document.getElementById("backToChoiceButton");
 const captchaModal = document.getElementById("captchaModal");
 const captchaCloseButton = document.getElementById("captchaCloseButton");
 
@@ -33,6 +39,7 @@ const HCAPTCHA_SITE_KEY = "fcc42bc6-e25c-48f2-85ea-497021987410";
 
 let captchaWidgetId = null;
 let pendingHostUrl = null;
+let pendingGuestSignIn = false;
 const CAPTCHA_SESSION_KEY = "pila-captcha-ok";
 
 const supabase = createSupabaseBrowserClient();
@@ -236,15 +243,22 @@ async function refreshContinueButton(userId) {
 
 function renderAuthState(session) {
   hostAuthenticated = Boolean(session?.user);
+  const isAnonymous = session?.user?.is_anonymous === true;
+  const isNamedAccount = hostAuthenticated && !isAnonymous;
+
   openHostButton.disabled = !hostAuthenticated;
   regenerateCodeButton.disabled = !hostAuthenticated;
-  logoutButton.disabled = !hostAuthenticated;
-  loginButton.disabled = hostAuthenticated;
-  hostEmailInput.disabled = hostAuthenticated;
-  hostPasswordInput.disabled = hostAuthenticated;
+  logoutButton.disabled = !isNamedAccount;
+  loginButton.disabled = isNamedAccount;
+  hostEmailInput.disabled = isNamedAccount;
+  hostPasswordInput.disabled = isNamedAccount;
+
+  // Show the right panel section
+  authChoiceGroup.hidden = hostAuthenticated;
+  accountSignInForm.hidden = true; // always collapse form on any state change
+  signedInActions.hidden = !hostAuthenticated;
 
   if (hostAuthenticated) {
-    const isAnonymous = session.user.is_anonymous === true;
     const email = isAnonymous ? "Guest" : session.user.email || "host user";
     const userId = session.user.id || "";
     currentUserId = userId;
@@ -283,7 +297,7 @@ function renderAuthState(session) {
 
 async function openHost() {
   if (!hostAuthenticated) {
-    hostStatus.textContent = "Sign in with the host account first.";
+    hostStatus.textContent = "Choose how to continue from the account panel first.";
     return;
   }
 
@@ -341,6 +355,7 @@ async function openHost() {
 
 function openCaptchaModal(url) {
   pendingHostUrl = url;
+  pendingGuestSignIn = false;
   captchaModal.hidden = false;
   document.body.style.overflow = "hidden";
 
@@ -361,12 +376,34 @@ function closeCaptchaModal() {
   captchaModal.hidden = true;
   document.body.style.overflow = "";
   pendingHostUrl = null;
+  pendingGuestSignIn = false;
   if (typeof hcaptcha !== "undefined" && captchaWidgetId !== null) {
     hcaptcha.reset(captchaWidgetId);
   }
 }
 
-window._pilaOnCaptcha = function (_token) {
+window._pilaOnCaptcha = async function (token) {
+  if (pendingGuestSignIn) {
+    closeCaptchaModal();
+    guestSignInButton.disabled = true;
+    authStatus.textContent = "Signing in as guest...";
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+      const { data, error } = await supabase.auth.signInAnonymously({
+        options: { captchaToken: token },
+      });
+      if (error) throw error;
+      sessionStorage.setItem(CAPTCHA_SESSION_KEY, "1");
+      renderAuthState(data.session);
+      setAuthDrawerOpen(false);
+    } catch (err) {
+      console.error(err);
+      authStatus.textContent = "Guest sign-in failed. Please try again.";
+      guestSignInButton.disabled = false;
+    }
+    return;
+  }
+
   sessionStorage.setItem(CAPTCHA_SESSION_KEY, "1");
   const url = pendingHostUrl;
   closeCaptchaModal();
@@ -379,6 +416,36 @@ window._pilaOnCaptchaError = function () {
   hostStatus.textContent = "Verification failed. Please try again.";
   closeCaptchaModal();
 };
+
+async function signInAsGuest() {
+  if (!supabase) return;
+
+  // Reuse any live session first (e.g. returning from host.html)
+  const { data: existing } = await supabase.auth.getSession();
+  if (existing?.session) {
+    renderAuthState(existing.session);
+    setAuthDrawerOpen(false);
+    return;
+  }
+
+  // Show captcha — on success _pilaOnCaptcha will call signInAnonymously with the token
+  pendingGuestSignIn = true;
+  pendingHostUrl = null;
+  captchaModal.hidden = false;
+  document.body.style.overflow = "hidden";
+
+  if (typeof hcaptcha !== "undefined") {
+    if (captchaWidgetId !== null) {
+      hcaptcha.reset(captchaWidgetId);
+    } else {
+      captchaWidgetId = hcaptcha.render("hcaptchaWidget", {
+        sitekey: HCAPTCHA_SITE_KEY,
+        callback: "_pilaOnCaptcha",
+        "error-callback": "_pilaOnCaptchaError",
+      });
+    }
+  }
+}
 
 function togglePasswordVisibility() {
   const showingPassword = hostPasswordInput.type === "password";
@@ -443,8 +510,6 @@ async function signOutHost() {
   }
 
   sessionStorage.removeItem(CAPTCHA_SESSION_KEY);
-  hostEmailInput.disabled = false;
-  hostPasswordInput.disabled = false;
   renderAuthState(null);
   setAuthDrawerOpen(false);
 }
@@ -600,6 +665,16 @@ continueHostButton.addEventListener("click", () => {
 });
 loginButton.addEventListener("click", signInHost);
 logoutButton.addEventListener("click", signOutHost);
+guestSignInButton.addEventListener("click", signInAsGuest);
+showAccountFormButton.addEventListener("click", () => {
+  accountSignInForm.hidden = false;
+  authChoiceGroup.hidden = true;
+  hostEmailInput.focus();
+});
+backToChoiceButton.addEventListener("click", () => {
+  accountSignInForm.hidden = true;
+  authChoiceGroup.hidden = false;
+});
 togglePasswordButton.addEventListener("click", togglePasswordVisibility);
 accountToggleButton.addEventListener("click", () => {
   setAuthDrawerOpen(authDrawer.hidden);
@@ -715,16 +790,16 @@ if (!isSupabaseConfigured()) {
   regenerateCodeButton.disabled = true;
 } else {
   let { data } = await supabase.auth.getSession();
-  // Auto sign-in anonymously — no email/password required
-  if (!data.session) {
-    const { data: anonData } = await supabase.auth.signInAnonymously();
-    if (anonData?.session) {
-      data = anonData;
-    }
-  }
+  // Do NOT auto sign-in — user now chooses Guest or Account explicitly
   renderAuthState(data.session);
 
-  supabase.auth.onAuthStateChange((_event, session) => {
+  supabase.auth.onAuthStateChange((event, session) => {
+    // Ignore the transient SIGNED_OUT that Supabase fires when evicting a
+    // stale local token right before completing a new anonymous sign-in.
+    // We only act on it if there is genuinely no session at all.
+    if (event === "SIGNED_OUT" && session === null && hostAuthenticated) {
+      return;
+    }
     renderAuthState(session);
   });
 }

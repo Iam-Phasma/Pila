@@ -989,6 +989,95 @@ button:disabled {
   font-size: 0.82rem;
 }
 
+.auth-choice-group {
+  display: grid;
+  gap: 8px;
+}
+
+.auth-choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.auth-choice-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.auth-choice-guest:hover {
+  background: var(--hover-sea-subtle);
+  border-color: var(--clay);
+}
+
+.auth-choice-account {
+  background: var(--sea);
+  border-color: var(--sea);
+  color: #fff;
+}
+
+.auth-choice-account:hover {
+  background: var(--hover-sea);
+  border-color: var(--hover-sea);
+}
+
+.auth-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 6px;
+  margin-bottom: 4px;
+  border: none;
+  background: transparent;
+  color: rgba(11, 28, 59, 0.55);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.auth-back-btn:hover {
+  background: var(--hover-neutral-soft);
+  color: var(--ink);
+}
+
+.auth-back-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.auth-form-fields {
+  display: grid;
+  gap: 10px;
+}
+
 .auth-summary {
   display: block;
   overflow: hidden;
