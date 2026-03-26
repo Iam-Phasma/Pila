@@ -1181,6 +1181,16 @@ a.button[aria-disabled="true"] {
   margin: 8px 10px;
 }
 
+a.header-popup-option {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+a.header-popup-option[hidden] {
+  display: none;
+}
+
 .header-popup-option {
   width: 100%;
   justify-content: flex-start;
@@ -1439,7 +1449,7 @@ canvas {
   }
 }
 
-/* Container query — stats collapse to 1-col when the panel itself is narrow (phones) */
+/* Container query ï¿½ stats collapse to 1-col when the panel itself is narrow (phones) */
 @container main-panel (max-width: 420px) {
   .stats {
     grid-template-columns: 1fr;

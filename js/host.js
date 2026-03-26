@@ -57,6 +57,7 @@ const elements = {
   confirmEndQueueButton: document.getElementById("confirmEndQueueButton"),
   hostAdminToast: document.getElementById("hostAdminToast"),
   hostAdminToastMsg: document.getElementById("hostAdminToastMsg"),
+  adminDashboardLink: document.getElementById("adminDashboardLink"),
 };
 
 const state = {
@@ -1432,6 +1433,7 @@ function openNewRoom() {
 }
 
 function closeTab() {
+  releaseTabLock();
   window.location.href = "index.html";
 }
 
@@ -1473,11 +1475,15 @@ async function boot() {
     return;
   }
 
-  const isAnonymous = data.session.user.is_anonymous === true;
+  const isAnonymous =
+    data.session.user.is_anonymous === true || !data.session.user.email;
   state.userId = data.session.user.id || "";
   state.currentUserEmail = isAnonymous
     ? "Guest"
     : data.session.user.email || "host user";
+  if (elements.adminDashboardLink) {
+    elements.adminDashboardLink.hidden = isAnonymous;
+  }
   loadOwnedRooms();
   registerOwnedRoom(state.room, state.roomName);
   render();
@@ -1494,10 +1500,13 @@ async function boot() {
       return;
     }
 
-    const isAnon = session.user.is_anonymous === true;
+    const isAnon = session.user.is_anonymous === true || !session.user.email;
     state.currentUserEmail = isAnon
       ? "Guest"
       : session.user.email || "host user";
+    if (elements.adminDashboardLink) {
+      elements.adminDashboardLink.hidden = isAnon;
+    }
     render();
   });
 
