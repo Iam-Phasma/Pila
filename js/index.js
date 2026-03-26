@@ -255,7 +255,11 @@ function renderAuthState(session) {
   hostPasswordInput.disabled = isNamedAccount;
 
   // Show the right panel section
-  authChoiceGroup.hidden = hostAuthenticated;
+  // Named account: show choices but disable guest option (must sign out first)
+  // Anonymous guest: hide choices (already signed in as guest)
+  // Not signed in: show choices, both enabled
+  authChoiceGroup.hidden = isAnonymous;
+  guestSignInButton.disabled = isNamedAccount;
   accountSignInForm.hidden = true; // always collapse form on any state change
   signedInActions.hidden = !hostAuthenticated;
 
