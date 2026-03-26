@@ -81,6 +81,28 @@
   }
 }
 
+@keyframes hostToastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes hostToastOut {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+}
+
 @keyframes statusShake {
   0% {
     transform: translateX(0);
@@ -1211,6 +1233,44 @@ canvas {
 
 .modal-backdrop[hidden] {
   display: none;
+}
+
+/* Admin terminated toast */
+.host-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: var(--radius-lg);
+  background: #92350d;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(11, 28, 59, 0.24);
+  z-index: 2000;
+  white-space: nowrap;
+  max-width: calc(100vw - 32px);
+  animation: hostToastIn 220ms ease-out both;
+}
+.host-toast[hidden] {
+  display: none;
+}
+.host-toast.toast-hide {
+  animation: hostToastOut 280ms ease-in both;
+}
+.host-toast svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .modal {

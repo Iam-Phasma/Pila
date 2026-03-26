@@ -1010,6 +1010,38 @@ button:disabled {
   flex: 0 0 auto;
 }
 
+.admin-drawer-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin: 0 2px;
+  border-radius: var(--radius-md);
+  background: rgba(47, 111, 228, 0.07);
+  border: 1px solid rgba(47, 111, 228, 0.16);
+  color: var(--sea);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 140ms ease;
+}
+.admin-drawer-link svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.admin-drawer-link:hover {
+  background: rgba(47, 111, 228, 0.14);
+}
+.admin-drawer-link[hidden] {
+  display: none;
+}
+
 .header-user-btn {
   min-height: 34px;
   border-radius: 10px;

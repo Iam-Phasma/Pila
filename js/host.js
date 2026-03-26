@@ -53,6 +53,8 @@ const elements = {
   endQueueModalText: document.getElementById("endQueueModalText"),
   cancelEndQueueButton: document.getElementById("cancelEndQueueButton"),
   confirmEndQueueButton: document.getElementById("confirmEndQueueButton"),
+  hostAdminToast: document.getElementById("hostAdminToast"),
+  hostAdminToastMsg: document.getElementById("hostAdminToastMsg"),
 };
 
 const state = {
@@ -78,6 +80,7 @@ const state = {
   alertChannel: null,
   presenceChannel: null,
   ownershipChannel: null,
+  adminNotifyChannel: null,
   sessionId: window.crypto.randomUUID(),
   speechVoices: [],
   ownedRooms: [],
@@ -281,6 +284,26 @@ function redirectToLogin() {
 }
 
 const ROOM_TTL_MS = 10 * 60 * 60 * 1000; // 10 hours
+
+let _adminToastTimer = null;
+
+function showHostToast(message) {
+  if (!elements.hostAdminToast || !elements.hostAdminToastMsg) {
+    return;
+  }
+  elements.hostAdminToastMsg.textContent = message;
+  elements.hostAdminToast.classList.remove("toast-hide");
+  elements.hostAdminToast.hidden = false;
+  if (_adminToastTimer) {
+    clearTimeout(_adminToastTimer);
+  }
+  _adminToastTimer = setTimeout(() => {
+    elements.hostAdminToast.classList.add("toast-hide");
+    _adminToastTimer = setTimeout(() => {
+      elements.hostAdminToast.hidden = true;
+    }, 300);
+  }, 6000);
+}
 
 function formatExpiry(createdAt) {
   if (!createdAt) {
@@ -869,6 +892,11 @@ async function deleteRoom() {
       state.alertChannel = null;
     }
 
+    if (state.adminNotifyChannel) {
+      await state.supabase.removeChannel(state.adminNotifyChannel);
+      state.adminNotifyChannel = null;
+    }
+
     unregisterOwnedRoom(state.room);
     handleRoomDeleted("Queue ended");
   } catch (error) {
@@ -1035,6 +1063,18 @@ async function subscribe() {
       }
     });
   });
+
+  // Subscribe to admin termination notifications
+  if (state.userId) {
+    state.adminNotifyChannel = state.supabase
+      .channel("admin-notify-" + state.userId)
+      .on("broadcast", { event: "room-terminated" }, (payload) => {
+        if (payload.payload?.roomCode === state.room) {
+          showHostToast("This queue was terminated by the administrator.");
+        }
+      })
+      .subscribe();
+  }
 }
 
 async function copyLink() {

@@ -62,16 +62,7 @@ CREATE POLICY "rooms_delete_owner"
   ON public.queue_rooms FOR DELETE
   USING (auth.uid() = owner_id);
 
-
--- =====================================================================
--- 3. AUTO-DELETE STALE ROOMS — "gone by tomorrow"
--- =====================================================================
--- Requires the pg_cron extension.
--- Enable it at: Database › Extensions › search "pg_cron" › Enable
---
--- Rooms are kept alive as long as the host is actively updating the
--- queue number (setQueueNumber already refreshes updated_at on every
--- change). Abandoned rooms are pruned after 10 hours.
+-- 3. AUTO-DELETE STALE ROOMS 
 
 SELECT cron.schedule(
   'delete-stale-rooms',   -- unique job name
@@ -87,3 +78,65 @@ SELECT cron.schedule(
 --
 -- To remove it later:
 -- SELECT cron.unschedule('delete-stale-rooms');
+
+
+-- =====================================================================
+-- 4. ADMIN FUNCTIONS  (run this block separately if already ran above)
+-- =====================================================================
+
+-- Helper: returns true only for the single named (non-anonymous) account.
+-- SECURITY DEFINER lets it read auth.users regardless of caller role.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM auth.users
+    WHERE id = auth.uid()
+      AND is_anonymous = false
+      AND email IS NOT NULL
+  );
+$$;
+
+-- Admin can delete ANY room (existing owner-only policy still works for normal hosts)
+DROP POLICY IF EXISTS "rooms_delete_admin" ON public.queue_rooms;
+CREATE POLICY "rooms_delete_admin"
+  ON public.queue_rooms FOR DELETE
+  USING (public.is_admin());
+
+-- RPC: returns every room with its owner's email + anonymous flag.
+-- Only callable when is_admin() = true; returns 0 rows otherwise.
+CREATE OR REPLACE FUNCTION public.admin_get_all_rooms()
+RETURNS TABLE (
+  room_code        text,
+  room_name        text,
+  current_number   integer,
+  owner_id         uuid,
+  owner_email      text,
+  owner_is_anonymous boolean,
+  created_at       timestamptz,
+  updated_at       timestamptz
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT
+    r.room_code,
+    r.room_name,
+    r.current_number,
+    r.owner_id,
+    COALESCE(u.email, '')          AS owner_email,
+    COALESCE(u.is_anonymous, true) AS owner_is_anonymous,
+    r.created_at,
+    r.updated_at
+  FROM public.queue_rooms r
+  LEFT JOIN auth.users u ON u.id = r.owner_id
+  WHERE public.is_admin() = true
+  ORDER BY r.created_at DESC;
+$$;

@@ -24,6 +24,7 @@ const continueHostButton = document.getElementById("continueHostButton");
 const joinFromInputButton = document.getElementById("joinFromInputButton");
 const joinStatus = document.getElementById("joinStatus");
 const configNotice = document.getElementById("configNotice");
+const adminPanelLink = document.getElementById("adminPanelLink");
 
 const supabase = createSupabaseBrowserClient();
 
@@ -219,12 +220,19 @@ function renderAuthState(session) {
     authStatus.textContent = isAnonymous
       ? "Ready. Open Host to start a queue."
       : "Signed in as " + email + ".";
+    // Show Admin Panel link only for named (non-anonymous) accounts
+    if (adminPanelLink) {
+      adminPanelLink.hidden = isAnonymous;
+    }
     refreshContinueButton(userId);
     subscribeOwnershipIndex(userId);
   } else {
     accountButtonLabel.textContent = "Host Login";
     authSummary.textContent = "Not signed in";
     authStatus.textContent = "Host sign-in required before opening a room.";
+    if (adminPanelLink) {
+      adminPanelLink.hidden = true;
+    }
     continueHostButton.disabled = true;
     continueHostButton.title = "Sign in to resume a room";
     delete continueHostButton.dataset.room;
