@@ -9,6 +9,8 @@ const MAX_OWNED_ROOMS = 5;
 const HOST_SETTINGS_STORAGE_KEY = "pila-host-settings";
 const HOST_OWNED_ROOMS_STORAGE_KEY = "pila-host-owned-rooms";
 const ROOM_REGEX = /^[a-z0-9-]{1,32}$/;
+const TAB_LOCK_STORAGE_KEY_PREFIX = "pila-host-tab-";
+const TAB_LOCK_TTL_MS = 30000;
 
 const elements = {
   statusChip: document.getElementById("statusChip"),
@@ -81,11 +83,27 @@ const state = {
   presenceChannel: null,
   ownershipChannel: null,
   adminNotifyChannel: null,
+  terminatedByAdmin: false,
   sessionId: window.crypto.randomUUID(),
   speechVoices: [],
   ownedRooms: [],
   userId: "",
 };
+
+function claimTabLock() {
+  try {
+    window.localStorage.setItem(
+      TAB_LOCK_STORAGE_KEY_PREFIX + state.room,
+      String(Date.now()),
+    );
+  } catch (_) {}
+}
+
+function releaseTabLock() {
+  try {
+    window.localStorage.removeItem(TAB_LOCK_STORAGE_KEY_PREFIX + state.room);
+  } catch (_) {}
+}
 
 function renderAccount() {
   const accountLabel = state.currentUserEmail || "host user";
@@ -790,6 +808,10 @@ function setBusy(flag) {
 }
 
 function handleRoomDeleted(message) {
+  releaseTabLock();
+  const displayMessage = state.terminatedByAdmin
+    ? "Queue terminated by administrator"
+    : message || "Queue ended";
   state.roomExists = false;
   state.terminated = true;
   state.currentNumber = 0;
@@ -797,7 +819,7 @@ function handleRoomDeleted(message) {
   state.updatedAt = null;
   render();
   setBusy(false);
-  setStatus(message || "Queue ended");
+  setStatus(displayMessage);
 }
 
 async function ensureRoomExists() {
@@ -960,6 +982,7 @@ async function submitQueueNumber() {
 async function subscribe() {
   await ensureRoomExists();
   await fetchRoom();
+  claimTabLock();
 
   state.queueChannel = state.supabase
     .channel("host-room-" + state.room)
@@ -1070,6 +1093,7 @@ async function subscribe() {
       .channel("admin-notify-" + state.userId)
       .on("broadcast", { event: "room-terminated" }, (payload) => {
         if (payload.payload?.roomCode === state.room) {
+          state.terminatedByAdmin = true;
           showHostToast("This queue was terminated by the administrator.");
         }
       })
@@ -1570,7 +1594,10 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+window.addEventListener("beforeunload", releaseTabLock);
+
 window.setInterval(() => {
+  if (state.roomExists) claimTabLock();
   elements.lastUpdateStat.textContent = formatTime(state.updatedAt);
   if (elements.expiresAtStat) {
     const remaining = formatExpiry(state.createdAt);

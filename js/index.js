@@ -35,6 +35,20 @@ let ownershipChannel = null;
 
 const MAX_OWNED_ROOMS = 5;
 const HOST_OWNED_ROOMS_STORAGE_KEY = "pila-host-owned-rooms";
+const TAB_LOCK_STORAGE_KEY_PREFIX = "pila-host-tab-";
+const TAB_LOCK_TTL_MS = 30000;
+
+function isRoomTabOpen(roomCode) {
+  try {
+    const stored = window.localStorage.getItem(
+      TAB_LOCK_STORAGE_KEY_PREFIX + roomCode,
+    );
+    if (!stored) return false;
+    return Date.now() - Number(stored) < TAB_LOCK_TTL_MS;
+  } catch (_) {
+    return false;
+  }
+}
 
 function getOwnedRoomCount(userId) {
   try {
@@ -157,10 +171,16 @@ async function refreshContinueButton(userId) {
         .maybeSingle();
 
       if (dbRoom) {
-        continueHostButton.disabled = false;
-        continueHostButton.dataset.room = dbRoom.room_code;
-        continueHostButton.title =
-          "Continue: " + (dbRoom.room_name || dbRoom.room_code.toUpperCase());
+        if (isRoomTabOpen(dbRoom.room_code)) {
+          continueHostButton.disabled = true;
+          continueHostButton.dataset.room = dbRoom.room_code;
+          continueHostButton.title = "Already open in another tab";
+        } else {
+          continueHostButton.disabled = false;
+          continueHostButton.dataset.room = dbRoom.room_code;
+          continueHostButton.title =
+            "Continue: " + (dbRoom.room_name || dbRoom.room_code.toUpperCase());
+        }
       } else {
         continueHostButton.disabled = true;
         continueHostButton.title = "No active rooms to resume";
@@ -183,10 +203,16 @@ async function refreshContinueButton(userId) {
       .maybeSingle();
 
     if (data) {
-      continueHostButton.disabled = false;
-      continueHostButton.dataset.room = room.code;
-      continueHostButton.title =
-        "Continue: " + (room.name || room.code.toUpperCase());
+      if (isRoomTabOpen(room.code)) {
+        continueHostButton.disabled = true;
+        continueHostButton.dataset.room = room.code;
+        continueHostButton.title = "Already open in another tab";
+      } else {
+        continueHostButton.disabled = false;
+        continueHostButton.dataset.room = room.code;
+        continueHostButton.title =
+          "Continue: " + (room.name || room.code.toUpperCase());
+      }
     } else {
       continueHostButton.disabled = true;
       continueHostButton.title = "No active rooms to resume";
@@ -599,6 +625,16 @@ document.addEventListener("click", (event) => {
     !accountToggleButton.contains(event.target)
   ) {
     setAuthDrawerOpen(false);
+  }
+});
+
+window.addEventListener("storage", (event) => {
+  if (
+    event.key &&
+    event.key.startsWith(TAB_LOCK_STORAGE_KEY_PREFIX) &&
+    currentUserId
+  ) {
+    void refreshContinueButton(currentUserId);
   }
 });
 
