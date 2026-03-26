@@ -674,6 +674,8 @@ body::before {
 
 .panel-main {
   padding: 20px;
+  container-type: inline-size;
+  container-name: main-panel;
 }
 
 .panel-side {
@@ -725,8 +727,14 @@ body::before {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+@container main-panel (max-width: 420px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
 }
 
 .stats-primary {
@@ -758,10 +766,6 @@ body::before {
   display: block;
   font-size: 1.3rem;
   color: var(--ink);
-}
-
-.hidden-stat {
-  display: none;
 }
 
 .stat-expiry-low .stat-label {
@@ -1339,7 +1343,7 @@ canvas {
   }
 
   .stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -1406,10 +1410,6 @@ canvas {
 
   .header-user-btn {
     max-width: min(58vw, 220px);
-  }
-
-  .stats {
-    grid-template-columns: 1fr;
   }
 
   .queue-number {
