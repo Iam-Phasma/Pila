@@ -40,6 +40,7 @@ const HCAPTCHA_SITE_KEY = "fcc42bc6-e25c-48f2-85ea-497021987410";
 let captchaWidgetId = null;
 let pendingHostUrl = null;
 let pendingGuestSignIn = false;
+let pendingAccountSignIn = null; // { email, password } when awaiting captcha
 const CAPTCHA_SESSION_KEY = "pila-captcha-ok";
 
 const supabase = createSupabaseBrowserClient();
@@ -297,7 +298,8 @@ function renderAuthState(session) {
 
 async function openHost() {
   if (!hostAuthenticated) {
-    hostStatus.textContent = "Choose how to continue from the account panel first.";
+    hostStatus.textContent =
+      "Choose how to continue from the account panel first.";
     return;
   }
 
@@ -356,6 +358,7 @@ async function openHost() {
 function openCaptchaModal(url) {
   pendingHostUrl = url;
   pendingGuestSignIn = false;
+  pendingAccountSignIn = null;
   captchaModal.hidden = false;
   document.body.style.overflow = "hidden";
 
@@ -377,12 +380,38 @@ function closeCaptchaModal() {
   document.body.style.overflow = "";
   pendingHostUrl = null;
   pendingGuestSignIn = false;
+  pendingAccountSignIn = null;
   if (typeof hcaptcha !== "undefined" && captchaWidgetId !== null) {
     hcaptcha.reset(captchaWidgetId);
   }
 }
 
 window._pilaOnCaptcha = async function (token) {
+  if (pendingAccountSignIn) {
+    const { email, password } = pendingAccountSignIn;
+    closeCaptchaModal();
+    loginButton.disabled = true;
+    authStatus.textContent = "Signing in...";
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        options: { captchaToken: token },
+      });
+      if (error) throw error;
+      hostPasswordInput.value = "";
+      sessionStorage.setItem(CAPTCHA_SESSION_KEY, "1");
+      renderAuthState(data.session);
+      setAuthDrawerOpen(false);
+    } catch (err) {
+      console.error(err);
+      authStatus.textContent = "Sign in failed. Check the host credentials.";
+      loginButton.disabled = false;
+    }
+    return;
+  }
+
   if (pendingGuestSignIn) {
     closeCaptchaModal();
     guestSignInButton.disabled = true;
@@ -413,8 +442,13 @@ window._pilaOnCaptcha = async function (token) {
 };
 
 window._pilaOnCaptchaError = function () {
-  hostStatus.textContent = "Verification failed. Please try again.";
+  const wasSignIn = pendingGuestSignIn || pendingAccountSignIn;
   closeCaptchaModal();
+  if (wasSignIn) {
+    authStatus.textContent = "Verification failed. Please try again.";
+  } else {
+    hostStatus.textContent = "Verification failed. Please try again.";
+  }
 };
 
 async function signInAsGuest() {
@@ -472,26 +506,23 @@ async function signInHost() {
     return;
   }
 
-  loginButton.disabled = true;
-  authStatus.textContent = "Signing in...";
+  // Store credentials and let captcha modal deliver the token
+  pendingAccountSignIn = { email, password };
+  pendingGuestSignIn = false;
+  pendingHostUrl = null;
+  captchaModal.hidden = false;
+  document.body.style.overflow = "hidden";
 
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      throw error;
+  if (typeof hcaptcha !== "undefined") {
+    if (captchaWidgetId !== null) {
+      hcaptcha.reset(captchaWidgetId);
+    } else {
+      captchaWidgetId = hcaptcha.render("hcaptchaWidget", {
+        sitekey: HCAPTCHA_SITE_KEY,
+        callback: "_pilaOnCaptcha",
+        "error-callback": "_pilaOnCaptchaError",
+      });
     }
-
-    hostPasswordInput.value = "";
-    renderAuthState(data.session);
-    setAuthDrawerOpen(false);
-  } catch (error) {
-    console.error(error);
-    authStatus.textContent = "Sign in failed. Check the host credentials.";
-    loginButton.disabled = false;
   }
 }
 
