@@ -742,6 +742,14 @@ body::before {
   display: none;
 }
 
+.stat-expiry-low .stat-label {
+  color: #b45309;
+}
+
+.stat-expiry-low strong {
+  color: #b45309;
+}
+
 .tool-strip {
   display: grid;
   grid-template-columns: 1fr;

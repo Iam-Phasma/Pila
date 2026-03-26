@@ -22,6 +22,7 @@ const elements = {
   watcherCountStat: document.getElementById("watcherCountStat"),
   roomStat: document.getElementById("roomStat"),
   lastUpdateStat: document.getElementById("lastUpdateStat"),
+  expiresAtStat: document.getElementById("expiresAtStat"),
   nextButton: document.getElementById("nextButton"),
   backButton: document.getElementById("backButton"),
   speakButton: document.getElementById("speakButton"),
@@ -61,6 +62,7 @@ const state = {
   watcherCount: 0,
   currentUserEmail: "",
   updatedAt: null,
+  createdAt: null,
   busy: false,
   roomExists: false,
   terminated: false,
@@ -276,6 +278,26 @@ function redirectToLogin() {
   const url = new URL("index.html", window.location.href);
   url.searchParams.set("room", state.room);
   window.location.href = url.toString();
+}
+
+const ROOM_TTL_MS = 10 * 60 * 60 * 1000; // 10 hours
+
+function formatExpiry(createdAt) {
+  if (!createdAt) {
+    return "--";
+  }
+  const remainingMs =
+    ROOM_TTL_MS - (Date.now() - new Date(createdAt).getTime());
+  if (remainingMs <= 0) {
+    return "Expired";
+  }
+  const totalMinutes = Math.ceil(remainingMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) {
+    return minutes + "m left";
+  }
+  return hours + "h " + (minutes > 0 ? minutes + "m" : "") + " left";
 }
 
 function formatTime(value) {
@@ -649,6 +671,17 @@ function render() {
   elements.watcherCountStat.textContent = String(state.watcherCount);
   elements.roomStat.textContent = roomCode;
   elements.lastUpdateStat.textContent = formatTime(state.updatedAt);
+  if (elements.expiresAtStat) {
+    const remaining = formatExpiry(state.createdAt);
+    elements.expiresAtStat.textContent = remaining;
+    const isLow =
+      state.createdAt &&
+      ROOM_TTL_MS - (Date.now() - new Date(state.createdAt).getTime()) <
+        60 * 60 * 1000;
+    elements.expiresAtStat
+      .closest(".stat")
+      ?.classList.toggle("stat-expiry-low", isLow);
+  }
   elements.setNumberInput.value = String(state.currentNumber);
   elements.roomNameInput.value = state.roomName;
   elements.roomCodeInput.value = roomCode;
@@ -786,6 +819,7 @@ async function fetchRoom() {
   state.roomExists = Boolean(data);
   state.currentNumber = clampQueueNumber(data?.current_number ?? 0);
   state.updatedAt = data?.updated_at ?? null;
+  state.createdAt = data?.created_at ?? state.createdAt;
   if (data && Object.prototype.hasOwnProperty.call(data, "room_name")) {
     state.roomName = sanitizeRoomName(data.room_name);
   }
@@ -1199,28 +1233,24 @@ function subscribeOwnership() {
         }
       },
     )
-    .on(
-      "broadcast",
-      { event: "sign-out" },
-      async () => {
-        // Another device signed out this account.
-        // Clear owned rooms from localStorage so the room count is not stale after re-login.
-        try {
-          window.localStorage.removeItem(
-            HOST_OWNED_ROOMS_STORAGE_KEY + "-" + state.userId,
-          );
-        } catch (_) {
-          // best-effort
-        }
-        // Clear the local session so index.html shows as signed out.
-        try {
-          await state.supabase.auth.signOut({ scope: "local" });
-        } catch (_) {
-          // best-effort
-        }
-        redirectToLogin();
-      },
-    )
+    .on("broadcast", { event: "sign-out" }, async () => {
+      // Another device signed out this account.
+      // Clear owned rooms from localStorage so the room count is not stale after re-login.
+      try {
+        window.localStorage.removeItem(
+          HOST_OWNED_ROOMS_STORAGE_KEY + "-" + state.userId,
+        );
+      } catch (_) {
+        // best-effort
+      }
+      // Clear the local session so index.html shows as signed out.
+      try {
+        await state.supabase.auth.signOut({ scope: "local" });
+      } catch (_) {
+        // best-effort
+      }
+      redirectToLogin();
+    })
     .subscribe();
 }
 
@@ -1248,7 +1278,10 @@ async function syncOwnedRoomsFromDB() {
     for (const row of data) {
       const existing = state.ownedRooms.find((r) => r.code === row.room_code);
       if (!existing) {
-        state.ownedRooms.push({ code: row.room_code, name: row.room_name || "" });
+        state.ownedRooms.push({
+          code: row.room_code,
+          name: row.room_name || "",
+        });
         changed = true;
       } else if (row.room_name && !existing.name) {
         existing.name = row.room_name;
@@ -1360,14 +1393,26 @@ async function boot() {
 
   state.supabase = createSupabaseBrowserClient();
 
-  const { data, error } = await state.supabase.auth.getSession();
-  if (error || !data.session) {
+  let { data, error } = await state.supabase.auth.getSession();
+  // Auto sign-in anonymously — no email/password required
+  if (!error && !data.session) {
+    const { data: anonData, error: anonError } =
+      await state.supabase.auth.signInAnonymously();
+    if (anonError || !anonData?.session) {
+      redirectToLogin();
+      return;
+    }
+    data = anonData;
+  } else if (error) {
     redirectToLogin();
     return;
   }
 
+  const isAnonymous = data.session.user.is_anonymous === true;
   state.userId = data.session.user.id || "";
-  state.currentUserEmail = data.session.user.email || "host user";
+  state.currentUserEmail = isAnonymous
+    ? "Guest"
+    : data.session.user.email || "host user";
   loadOwnedRooms();
   registerOwnedRoom(state.room, state.roomName);
   render();
@@ -1384,7 +1429,10 @@ async function boot() {
       return;
     }
 
-    state.currentUserEmail = session.user.email || "host user";
+    const isAnon = session.user.is_anonymous === true;
+    state.currentUserEmail = isAnon
+      ? "Guest"
+      : session.user.email || "host user";
     render();
   });
 
@@ -1484,6 +1532,17 @@ window.addEventListener("keydown", (event) => {
 
 window.setInterval(() => {
   elements.lastUpdateStat.textContent = formatTime(state.updatedAt);
+  if (elements.expiresAtStat) {
+    const remaining = formatExpiry(state.createdAt);
+    elements.expiresAtStat.textContent = remaining;
+    const isLow =
+      state.createdAt &&
+      ROOM_TTL_MS - (Date.now() - new Date(state.createdAt).getTime()) <
+        60 * 60 * 1000;
+    elements.expiresAtStat
+      .closest(".stat")
+      ?.classList.toggle("stat-expiry-low", isLow);
+  }
 }, 10000);
 
 boot();

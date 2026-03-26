@@ -159,8 +159,7 @@ async function refreshContinueButton(userId) {
         continueHostButton.disabled = false;
         continueHostButton.dataset.room = dbRoom.room_code;
         continueHostButton.title =
-          "Continue: " +
-          (dbRoom.room_name || dbRoom.room_code.toUpperCase());
+          "Continue: " + (dbRoom.room_name || dbRoom.room_code.toUpperCase());
       } else {
         continueHostButton.disabled = true;
         continueHostButton.title = "No active rooms to resume";
@@ -209,12 +208,17 @@ function renderAuthState(session) {
   hostPasswordInput.disabled = hostAuthenticated;
 
   if (hostAuthenticated) {
-    const email = session.user.email || "host user";
+    const isAnonymous = session.user.is_anonymous === true;
+    const email = isAnonymous ? "Guest" : session.user.email || "host user";
     const userId = session.user.id || "";
     currentUserId = userId;
-    accountButtonLabel.textContent = email;
-    authSummary.textContent = "Signed in as " + email;
-    authStatus.textContent = "Signed in as " + email + ".";
+    accountButtonLabel.textContent = isAnonymous ? "Guest Host" : email;
+    authSummary.textContent = isAnonymous
+      ? "Signed in as Guest"
+      : "Signed in as " + email;
+    authStatus.textContent = isAnonymous
+      ? "Ready. Open Host to start a queue."
+      : "Signed in as " + email + ".";
     refreshContinueButton(userId);
     subscribeOwnershipIndex(userId);
   } else {
@@ -472,27 +476,23 @@ function subscribeOwnershipIndex(userId) {
         refreshContinueButton(userId);
       },
     )
-    .on(
-      "broadcast",
-      { event: "sign-out" },
-      async () => {
-        // Another device signed out this account — clear local state and update UI.
-        try {
-          window.localStorage.removeItem(
-            HOST_OWNED_ROOMS_STORAGE_KEY + "-" + userId,
-          );
-        } catch (_) {
-          // best-effort
-        }
-        try {
-          await supabase.auth.signOut({ scope: "local" });
-        } catch (_) {
-          // best-effort — token may already be revoked
-        }
-        renderAuthState(null);
-        setAuthDrawerOpen(false);
-      },
-    )
+    .on("broadcast", { event: "sign-out" }, async () => {
+      // Another device signed out this account — clear local state and update UI.
+      try {
+        window.localStorage.removeItem(
+          HOST_OWNED_ROOMS_STORAGE_KEY + "-" + userId,
+        );
+      } catch (_) {
+        // best-effort
+      }
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch (_) {
+        // best-effort — token may already be revoked
+      }
+      renderAuthState(null);
+      setAuthDrawerOpen(false);
+    })
     .subscribe();
 }
 continueHostButton.addEventListener("click", () => {
@@ -607,7 +607,14 @@ if (!isSupabaseConfigured()) {
   openHostButton.disabled = true;
   regenerateCodeButton.disabled = true;
 } else {
-  const { data } = await supabase.auth.getSession();
+  let { data } = await supabase.auth.getSession();
+  // Auto sign-in anonymously — no email/password required
+  if (!data.session) {
+    const { data: anonData } = await supabase.auth.signInAnonymously();
+    if (anonData?.session) {
+      data = anonData;
+    }
+  }
   renderAuthState(data.session);
 
   supabase.auth.onAuthStateChange((_event, session) => {
