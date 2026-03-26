@@ -711,7 +711,8 @@ function render() {
   elements.currentNumberStat.textContent = roomCode;
   elements.watcherCountStat.textContent = String(state.watcherCount);
   if (elements.roomStat) elements.roomStat.textContent = roomCode;
-  if (elements.lastUpdateStat) elements.lastUpdateStat.textContent = formatTime(state.updatedAt);
+  if (elements.lastUpdateStat)
+    elements.lastUpdateStat.textContent = formatTime(state.updatedAt);
   if (elements.expiresAtStat) {
     const remaining = formatExpiry(state.createdAt);
     elements.expiresAtStat.textContent = remaining;
@@ -1598,7 +1599,8 @@ window.addEventListener("beforeunload", releaseTabLock);
 
 window.setInterval(() => {
   if (state.roomExists) claimTabLock();
-  if (elements.lastUpdateStat) elements.lastUpdateStat.textContent = formatTime(state.updatedAt);
+  if (elements.lastUpdateStat)
+    elements.lastUpdateStat.textContent = formatTime(state.updatedAt);
   if (elements.expiresAtStat) {
     const remaining = formatExpiry(state.createdAt);
     elements.expiresAtStat.textContent = remaining;
