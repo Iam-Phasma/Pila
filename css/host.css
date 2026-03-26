@@ -731,12 +731,6 @@ body::before {
   gap: 12px;
 }
 
-@container main-panel (max-width: 420px) {
-  .stats {
-    grid-template-columns: 1fr;
-  }
-}
-
 .stats-primary {
   margin-bottom: 16px;
 }
@@ -1341,10 +1335,6 @@ canvas {
   .topbar-meta {
     justify-content: flex-end;
   }
-
-  .stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 760px) {
@@ -1446,5 +1436,12 @@ canvas {
   .tool-group-jump input {
     padding-inline: 8px;
     font-size: 0.84rem;
+  }
+}
+
+/* Container query — stats collapse to 1-col when the panel itself is narrow (phones) */
+@container main-panel (max-width: 420px) {
+  .stats {
+    grid-template-columns: 1fr;
   }
 }
