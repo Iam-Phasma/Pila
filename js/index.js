@@ -25,6 +25,7 @@ const joinFromInputButton = document.getElementById("joinFromInputButton");
 const joinStatus = document.getElementById("joinStatus");
 const configNotice = document.getElementById("configNotice");
 const adminPanelLink = document.getElementById("adminPanelLink");
+const adminPanelSection = document.getElementById("adminPanelSection");
 const authChoiceGroup = document.getElementById("authChoiceGroup");
 const accountSignInForm = document.getElementById("accountSignInForm");
 const signedInActions = document.getElementById("signedInActions");
@@ -249,7 +250,8 @@ function renderAuthState(session) {
 
   openHostButton.disabled = !hostAuthenticated;
   regenerateCodeButton.disabled = !hostAuthenticated;
-  logoutButton.disabled = !isNamedAccount;
+  logoutButton.hidden = !isNamedAccount;
+  showAccountFormButton.hidden = isNamedAccount;
   loginButton.disabled = isNamedAccount;
   hostEmailInput.disabled = isNamedAccount;
   hostPasswordInput.disabled = isNamedAccount;
@@ -275,17 +277,20 @@ function renderAuthState(session) {
       ? "Ready. Open Host to start a queue."
       : "Signed in as " + email + ".";
     // Show Admin Panel link only for named (non-anonymous) accounts
+    if (adminPanelSection) {
+      adminPanelSection.hidden = isAnonymous;
+    }
     if (adminPanelLink) {
       adminPanelLink.hidden = isAnonymous;
     }
     refreshContinueButton(userId);
     subscribeOwnershipIndex(userId);
   } else {
-    accountButtonLabel.textContent = "Host Login";
+    accountButtonLabel.textContent = "Host Setup";
     authSummary.textContent = "Not signed in";
     authStatus.textContent = "Host sign-in required before opening a room.";
-    if (adminPanelLink) {
-      adminPanelLink.hidden = true;
+    if (adminPanelSection) {
+      adminPanelSection.hidden = true;
     }
     continueHostButton.disabled = true;
     continueHostButton.title = "Sign in to resume a room";

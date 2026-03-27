@@ -90,7 +90,7 @@
               <circle cx="12" cy="8" r="4"></circle>
             </svg>
             <span class="header-user-name" id="accountButtonLabel"
-              >Host Login</span
+              >Host Setup</span
             >
           </button>
           <section class="auth-drawer" id="authDrawer" hidden>
@@ -109,21 +109,22 @@
               </div>
             </div>
             <div class="auth-drawer-divider"></div>
-            <a
-              class="admin-drawer-link"
-              id="adminPanelLink"
-              href="admin.html"
-              hidden
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="3" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" />
-                <rect x="14" y="14" width="7" height="7" rx="1" />
-              </svg>
-              Admin Panel
-            </a>
-            <div class="auth-drawer-divider"></div>
+            <div id="adminPanelSection" hidden>
+              <a
+                class="admin-drawer-link"
+                id="adminPanelLink"
+                href="admin.html"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                Admin Panel
+              </a>
+              <div class="auth-drawer-divider"></div>
+            </div>
             <div class="auth-drawer-content">
               <div class="auth-drawer-head">
                 <div>
@@ -159,6 +160,14 @@
                   </svg>
                   Sign in with Account
                 </button>
+                <button
+                  class="secondary"
+                  id="logoutButton"
+                  type="button"
+                  hidden
+                >
+                  Sign Out
+                </button>
               </div>
 
               <!-- Email/password form (shown after choosing Account) -->
@@ -171,7 +180,7 @@
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="m15 18-6-6 6-6" />
                   </svg>
-                  Back
+                  Back to sign-in options
                 </button>
                 <div class="auth-form-fields">
                   <label for="hostEmailInput">Email</label>
@@ -223,12 +232,8 @@
                 </div>
               </div>
 
-              <!-- Signed-in state actions -->
-              <div id="signedInActions" hidden>
-                <button class="secondary" id="logoutButton" type="button">
-                  Sign Out
-                </button>
-              </div>
+              <!-- Signed-in state actions (kept for JS compat) -->
+              <div id="signedInActions" hidden></div>
 
               <div class="status" id="authStatus">Checking...</div>
             </div>
