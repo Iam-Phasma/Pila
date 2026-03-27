@@ -13,6 +13,7 @@
           "overflow-wrap: anywhere"
         ]
       }
-    ]
+    ],
+    "no-inline-styles": "off"
   }
 }
