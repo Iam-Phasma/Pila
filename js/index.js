@@ -35,7 +35,7 @@ const captchaModal = document.getElementById("captchaModal");
 const captchaCloseButton = document.getElementById("captchaCloseButton");
 
 // hCaptcha — replace with your real site key from hcaptcha.com
-const HCAPTCHA_SITE_KEY = "fcc42bc6-e25c-48f2-85ea-497021987410";
+const HCAPTCHA_SITE_KEY = "873e8134-a77c-47c8-bba2-960ae5c25cca";
 
 let captchaWidgetId = null;
 let pendingHostUrl = null;
