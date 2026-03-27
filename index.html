@@ -109,22 +109,6 @@
               </div>
             </div>
             <div class="auth-drawer-divider"></div>
-            <div id="adminPanelSection" hidden>
-              <a
-                class="admin-drawer-link"
-                id="adminPanelLink"
-                href="admin.html"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <rect x="3" y="3" width="7" height="7" rx="1" />
-                  <rect x="14" y="3" width="7" height="7" rx="1" />
-                  <rect x="3" y="14" width="7" height="7" rx="1" />
-                  <rect x="14" y="14" width="7" height="7" rx="1" />
-                </svg>
-                Admin Panel
-              </a>
-              <div class="auth-drawer-divider"></div>
-            </div>
             <div class="auth-drawer-content">
               <div class="auth-drawer-head">
                 <div>
@@ -160,12 +144,22 @@
                   </svg>
                   Sign in with Account
                 </button>
-                <button
-                  class="secondary"
-                  id="logoutButton"
-                  type="button"
-                  hidden
-                >
+                <div id="adminPanelSection" hidden>
+                  <a
+                    class="admin-drawer-link"
+                    id="adminPanelLink"
+                    href="admin.html"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="3" y="3" width="7" height="7" rx="1" />
+                      <rect x="14" y="3" width="7" height="7" rx="1" />
+                      <rect x="3" y="14" width="7" height="7" rx="1" />
+                      <rect x="14" y="14" width="7" height="7" rx="1" />
+                    </svg>
+                    Admin Panel
+                  </a>
+                </div>
+                <button class="danger" id="logoutButton" type="button" hidden>
                   Sign Out
                 </button>
               </div>
@@ -180,7 +174,7 @@
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="m15 18-6-6 6-6" />
                   </svg>
-                  Back to sign-in options
+                  Collapse Form
                 </button>
                 <div class="auth-form-fields">
                   <label for="hostEmailInput">Email</label>

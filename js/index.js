@@ -43,6 +43,25 @@ let pendingHostUrl = null;
 let pendingGuestSignIn = false;
 let pendingAccountSignIn = null; // { email, password } when awaiting captcha
 const CAPTCHA_SESSION_KEY = "pila-captcha-ok";
+const CAPTCHA_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
+
+function isCaptchaValid() {
+  const raw = localStorage.getItem(CAPTCHA_SESSION_KEY);
+  if (!raw) return false;
+  const expiry = Number(raw);
+  return Date.now() < expiry;
+}
+
+function setCaptchaValid() {
+  localStorage.setItem(
+    CAPTCHA_SESSION_KEY,
+    String(Date.now() + CAPTCHA_TTL_MS),
+  );
+}
+
+function clearCaptchaValid() {
+  localStorage.removeItem(CAPTCHA_SESSION_KEY);
+}
 
 const supabase = createSupabaseBrowserClient();
 
@@ -251,7 +270,12 @@ function renderAuthState(session) {
   openHostButton.disabled = !hostAuthenticated;
   regenerateCodeButton.disabled = !hostAuthenticated;
   logoutButton.hidden = !isNamedAccount;
-  showAccountFormButton.hidden = isNamedAccount;
+  logoutButton.disabled = !isNamedAccount;
+  showAccountFormButton.hidden = false;
+  showAccountFormButton.disabled = isNamedAccount;
+  showAccountFormButton.title = isNamedAccount
+    ? "Sign out first to switch accounts"
+    : "";
   loginButton.disabled = isNamedAccount;
   hostEmailInput.disabled = isNamedAccount;
   hostPasswordInput.disabled = isNamedAccount;
@@ -270,12 +294,11 @@ function renderAuthState(session) {
     const userId = session.user.id || "";
     currentUserId = userId;
     accountButtonLabel.textContent = isAnonymous ? "Guest Host" : email;
-    authSummary.textContent = isAnonymous
-      ? "Signed in as Guest"
-      : "Signed in as " + email;
-    authStatus.textContent = isAnonymous
-      ? "Ready. Open Host to start a queue."
-      : "Signed in as " + email + ".";
+    authSummary.textContent = isAnonymous ? "Signed in as Guest" : email;
+    authStatus.hidden = isNamedAccount;
+    if (!isNamedAccount && isAnonymous) {
+      authStatus.textContent = "Ready. Open Host to start a queue.";
+    }
     // Show Admin Panel link only for named (non-anonymous) accounts
     if (adminPanelSection) {
       adminPanelSection.hidden = isAnonymous;
@@ -288,6 +311,7 @@ function renderAuthState(session) {
   } else {
     accountButtonLabel.textContent = "Host Setup";
     authSummary.textContent = "Not signed in";
+    authStatus.hidden = false;
     authStatus.textContent = "Host sign-in required before opening a room.";
     if (adminPanelSection) {
       adminPanelSection.hidden = true;
@@ -356,7 +380,7 @@ async function openHost() {
 
   const targetUrl = buildRelativeUrl("host.html", currentGeneratedRoom);
 
-  if (sessionStorage.getItem(CAPTCHA_SESSION_KEY) === "1") {
+  if (isCaptchaValid()) {
     window.location.href = targetUrl;
     return;
   }
@@ -410,7 +434,7 @@ window._pilaOnCaptcha = async function (token) {
       });
       if (error) throw error;
       hostPasswordInput.value = "";
-      sessionStorage.setItem(CAPTCHA_SESSION_KEY, "1");
+      setCaptchaValid();
       renderAuthState(data.session);
       setAuthDrawerOpen(false);
     } catch (err) {
@@ -431,7 +455,7 @@ window._pilaOnCaptcha = async function (token) {
         options: { captchaToken: token },
       });
       if (error) throw error;
-      sessionStorage.setItem(CAPTCHA_SESSION_KEY, "1");
+      setCaptchaValid();
       renderAuthState(data.session);
       setAuthDrawerOpen(false);
     } catch (err) {
@@ -442,7 +466,7 @@ window._pilaOnCaptcha = async function (token) {
     return;
   }
 
-  sessionStorage.setItem(CAPTCHA_SESSION_KEY, "1");
+  setCaptchaValid();
   const url = pendingHostUrl;
   closeCaptchaModal();
   if (url) {
@@ -549,7 +573,7 @@ async function signOutHost() {
     // Swallow the error and clear local state regardless.
   }
 
-  sessionStorage.removeItem(CAPTCHA_SESSION_KEY);
+  clearCaptchaValid();
   renderAuthState(null);
   setAuthDrawerOpen(false);
 }
