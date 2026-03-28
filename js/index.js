@@ -831,26 +831,64 @@ joinFromInputButton.addEventListener("click", () =>
 const cameraInput = document.getElementById("cameraInput");
 const scannerStatus = document.getElementById("scannerStatus");
 
+// Decode a file into a canvas, resizing to maxDim on the longest side.
+// Using an <img> element works universally including iOS HEIC captures.
+function resizeForScan(file, maxDim = 1400) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(
+        1,
+        maxDim / Math.max(img.naturalWidth || maxDim, img.naturalHeight || maxDim),
+      );
+      const w = Math.round(img.naturalWidth * scale);
+      const h = Math.round(img.naturalHeight * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(canvas);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Image load failed"));
+    };
+    img.src = url;
+  });
+}
+
 async function scanImageFile(file) {
   try {
     scannerStatus.textContent = "Scanning...";
 
-    // Try native BarcodeDetector first (Android Chrome)
+    // Resize/normalise first — handles large phone photos and iOS HEIC format
+    const canvas = await resizeForScan(file, 1400);
+
+    // Try native BarcodeDetector (Chrome / Android)
     if (typeof window.BarcodeDetector !== "undefined") {
-      const det = new window.BarcodeDetector({ formats: ["qr_code"] });
-      const bitmap = await createImageBitmap(file);
-      const codes = await det.detect(bitmap);
-      bitmap.close();
-      if (codes.length > 0) {
-        scannerStatus.textContent = "";
-        await openJoinValue(codes[0].rawValue);
-        return;
+      try {
+        const det = new window.BarcodeDetector({ formats: ["qr_code"] });
+        const bitmap = await createImageBitmap(canvas);
+        const codes = await det.detect(bitmap);
+        bitmap.close();
+        if (codes.length > 0) {
+          scannerStatus.textContent = "";
+          await openJoinValue(codes[0].rawValue);
+          return;
+        }
+      } catch (_) {
+        // BarcodeDetector unavailable or failed — continue to API fallback
       }
     }
 
-    // Fallback: goqr.me public API (works on all browsers)
+    // Fallback: goqr.me public API
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.92),
+    );
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", blob, "qr.jpg");
     const response = await fetch("https://api.qrserver.com/v1/read-qr-code/", {
       method: "POST",
       body: formData,
