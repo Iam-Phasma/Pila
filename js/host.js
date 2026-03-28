@@ -770,7 +770,8 @@ function render() {
   elements.clientLinkInput.value = clientUrl;
   elements.openClientLink.href = clientUrl;
 
-  QRCode.toCanvas(elements.qrCanvas, clientUrl, {
+  const qrUrl = buildClientUrl(state.room);
+  QRCode.toCanvas(elements.qrCanvas, qrUrl, {
     width: 220,
     margin: 1,
   }).catch((error) => {
@@ -779,12 +780,12 @@ function render() {
 }
 
 async function saveQrCode() {
-  const clientUrl = buildClientUrl(state.room, state.roomName);
+  const qrUrl = buildClientUrl(state.room);
   const roomCode = state.room.toUpperCase();
 
   let dataUrl;
   try {
-    dataUrl = await QRCode.toDataURL(clientUrl, {
+    dataUrl = await QRCode.toDataURL(qrUrl, {
       width: 800,
       margin: 2,
       color: { dark: "#0b1c3b", light: "#ffffff" },
@@ -801,7 +802,7 @@ async function saveQrCode() {
 }
 
 async function printQrCode() {
-  const clientUrl = buildClientUrl(state.room, state.roomName);
+  const qrUrl = buildClientUrl(state.room);
   const roomCode = state.room.toUpperCase();
   const roomLabel = state.roomName
     ? state.roomName.toUpperCase()
@@ -809,7 +810,7 @@ async function printQrCode() {
 
   let dataUrl;
   try {
-    dataUrl = await QRCode.toDataURL(clientUrl, {
+    dataUrl = await QRCode.toDataURL(qrUrl, {
       width: 800,
       margin: 2,
       color: { dark: "#0b1c3b", light: "#ffffff" },
