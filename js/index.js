@@ -860,56 +860,87 @@ function resizeForScan(file, maxDim = 1400) {
 }
 
 async function scanImageFile(file) {
-  try {
-    scannerStatus.textContent = "Scanning...";
+  scannerStatus.textContent = "Scanning...";
 
-    // Resize/normalise first — handles large phone photos and iOS HEIC format
-    const canvas = await resizeForScan(file, 1400);
-
-    // Try native BarcodeDetector (Chrome / Android)
-    if (typeof window.BarcodeDetector !== "undefined") {
-      try {
-        const det = new window.BarcodeDetector({ formats: ["qr_code"] });
-        const bitmap = await createImageBitmap(canvas);
-        const codes = await det.detect(bitmap);
-        bitmap.close();
-        if (codes.length > 0) {
-          scannerStatus.textContent = "";
-          await openJoinValue(codes[0].rawValue);
-          return;
-        }
-      } catch (_) {
-        // BarcodeDetector unavailable or failed — continue to API fallback
+  // Step 1: BarcodeDetector on the raw file.
+  // Best on Android Chrome — it handles large camera JPEGs natively without
+  // needing any preprocessing, so we try this before resizing.
+  if (typeof window.BarcodeDetector !== "undefined") {
+    try {
+      const det = new window.BarcodeDetector({ formats: ["qr_code"] });
+      const bitmap = await createImageBitmap(file);
+      const codes = await det.detect(bitmap);
+      bitmap.close();
+      if (codes.length > 0) {
+        scannerStatus.textContent = "";
+        await openJoinValue(codes[0].rawValue);
+        cameraInput.value = "";
+        return;
       }
+    } catch (_) {
+      // Not available or file format unsupported (e.g. HEIC on iOS) — continue
     }
+  }
 
-    // Fallback: goqr.me public API
+  // Step 2: Resize via <img> element (universally decodes HEIC / large files)
+  // then retry BarcodeDetector on the normalised canvas.
+  let canvas;
+  try {
+    canvas = await resizeForScan(file, 1400);
+  } catch (_) {
+    scannerStatus.textContent = "Could not read the image. Try again.";
+    cameraInput.value = "";
+    return;
+  }
+
+  if (typeof window.BarcodeDetector !== "undefined") {
+    try {
+      const det = new window.BarcodeDetector({ formats: ["qr_code"] });
+      const bitmap = await createImageBitmap(canvas);
+      const codes = await det.detect(bitmap);
+      bitmap.close();
+      if (codes.length > 0) {
+        scannerStatus.textContent = "";
+        await openJoinValue(codes[0].rawValue);
+        cameraInput.value = "";
+        return;
+      }
+    } catch (_) {
+      // continue to API
+    }
+  }
+
+  // Step 3: External API fallback (goqr.me).
+  // Wrapped in its own try/catch so a network error never shows the generic
+  // "Could not read" message — mobile networks can block third-party fetches.
+  try {
     const blob = await new Promise((resolve) =>
       canvas.toBlob(resolve, "image/jpeg", 0.92),
     );
-    const formData = new FormData();
-    formData.append("file", blob, "qr.jpg");
-    const response = await fetch("https://api.qrserver.com/v1/read-qr-code/", {
-      method: "POST",
-      body: formData,
-    });
-    if (response.ok) {
-      const result = await response.json();
-      const decoded = result?.[0]?.symbol?.[0]?.data;
-      if (decoded) {
-        scannerStatus.textContent = "";
-        await openJoinValue(decoded);
-        return;
+    if (blob) {
+      const formData = new FormData();
+      formData.append("file", blob, "qr.jpg");
+      const response = await fetch(
+        "https://api.qrserver.com/v1/read-qr-code/",
+        { method: "POST", body: formData },
+      );
+      if (response.ok) {
+        const result = await response.json();
+        const decoded = result?.[0]?.symbol?.[0]?.data;
+        if (decoded) {
+          scannerStatus.textContent = "";
+          await openJoinValue(decoded);
+          cameraInput.value = "";
+          return;
+        }
       }
     }
-
-    scannerStatus.textContent = "No QR code found. Try a clearer photo.";
-  } catch (error) {
-    console.error(error);
-    scannerStatus.textContent = "Could not read the image. Try again.";
-  } finally {
-    cameraInput.value = "";
+  } catch (_) {
+    // API unreachable — fall through to "not found" message
   }
+
+  scannerStatus.textContent = "No QR code found. Try a clearer photo.";
+  cameraInput.value = "";
 }
 
 cameraInput.addEventListener("change", () => {
