@@ -28,13 +28,13 @@ const elements = {
   nextButton: document.getElementById("nextButton"),
   backButton: document.getElementById("backButton"),
   speakButton: document.getElementById("speakButton"),
+  chimeButton: document.getElementById("chimeButton"),
   alertButton: document.getElementById("alertButton"),
   settingsButton: document.getElementById("settingsButton"),
   settingsPanel: document.getElementById("settingsPanel"),
   autoSpeakToggle: document.getElementById("autoSpeakToggle"),
-  autoAlertToggle: document.getElementById("autoAlertToggle"),
-  muteHostSpeakToggle: document.getElementById("muteHostSpeakToggle"),
-  muteHostChimeToggle: document.getElementById("muteHostChimeToggle"),
+  autoChimeToggle: document.getElementById("autoChimeToggle"),
+  autoRippleToggle: document.getElementById("autoRippleToggle"),
   resetButton: document.getElementById("resetButton"),
   setNumberInput: document.getElementById("setNumberInput"),
   setNumberButton: document.getElementById("setNumberButton"),
@@ -75,7 +75,8 @@ const state = {
   confirmReturnFocus: null,
   settingsOpen: false,
   autoSpeakOnAdvance: false,
-  autoAlertOnAdvance: false,
+  autoChimeOnAdvance: false,
+  autoRippleOnAdvance: false,
   muteHostSpeak: false,
   muteHostChime: false,
   supabase: null,
@@ -123,7 +124,8 @@ function loadHostSettings() {
 
     const parsedSettings = JSON.parse(rawSettings);
     state.autoSpeakOnAdvance = Boolean(parsedSettings.autoSpeakOnAdvance);
-    state.autoAlertOnAdvance = Boolean(parsedSettings.autoAlertOnAdvance);
+    state.autoChimeOnAdvance = Boolean(parsedSettings.autoChimeOnAdvance ?? parsedSettings.autoAlertOnAdvance);
+    state.autoRippleOnAdvance = Boolean(parsedSettings.autoRippleOnAdvance ?? parsedSettings.autoAlertOnAdvance);
     state.muteHostSpeak = Boolean(parsedSettings.muteHostSpeak);
     state.muteHostChime = Boolean(parsedSettings.muteHostChime);
   } catch (error) {
@@ -137,7 +139,8 @@ function persistHostSettings() {
       HOST_SETTINGS_STORAGE_KEY,
       JSON.stringify({
         autoSpeakOnAdvance: state.autoSpeakOnAdvance,
-        autoAlertOnAdvance: state.autoAlertOnAdvance,
+        autoChimeOnAdvance: state.autoChimeOnAdvance,
+        autoRippleOnAdvance: state.autoRippleOnAdvance,
         muteHostSpeak: state.muteHostSpeak,
         muteHostChime: state.muteHostChime,
       }),
@@ -154,9 +157,8 @@ function renderSettings() {
     String(state.settingsOpen),
   );
   elements.autoSpeakToggle.checked = state.autoSpeakOnAdvance;
-  elements.autoAlertToggle.checked = state.autoAlertOnAdvance;
-  elements.muteHostSpeakToggle.checked = !state.muteHostSpeak;
-  elements.muteHostChimeToggle.checked = !state.muteHostChime;
+  elements.autoChimeToggle.checked = state.autoChimeOnAdvance;
+  elements.autoRippleToggle.checked = state.autoRippleOnAdvance;
 }
 
 function toggleSettingsPanel() {
@@ -596,6 +598,33 @@ async function playAlertTone() {
   setStatus("Alert played");
 }
 
+async function sendClientChime() {
+  if (!state.alertChannel) {
+    setStatus("Client chime unavailable");
+    return;
+  }
+
+  try {
+    const channelStatus = await state.alertChannel.send({
+      type: "broadcast",
+      event: "alert-chime",
+      payload: {
+        room: state.room,
+        triggeredAt: new Date().toISOString(),
+      },
+    });
+
+    if (channelStatus !== "ok") {
+      throw new Error("Broadcast failed");
+    }
+
+    setStatus("Client chime triggered");
+  } catch (error) {
+    console.error(error);
+    setStatus("Client chime failed");
+  }
+}
+
 async function sendClientAlertRipple() {
   if (!state.alertChannel) {
     setStatus("Client alert unavailable");
@@ -653,8 +682,12 @@ async function triggerSpeak() {
   await Promise.allSettled([speakQueueNumber(), sendClientSpeakNumber()]);
 }
 
+async function triggerChime() {
+  await Promise.allSettled([playAlertTone(), sendClientChime()]);
+}
+
 async function triggerAlert() {
-  await Promise.allSettled([playAlertTone(), sendClientAlertRipple()]);
+  await Promise.allSettled([triggerChime(), sendClientAlertRipple()]);
 }
 
 async function runAdvanceActions(source) {
@@ -666,8 +699,12 @@ async function runAdvanceActions(source) {
     speakQueueNumber();
   }
 
-  if (state.autoAlertOnAdvance) {
-    await triggerAlert();
+  if (state.autoChimeOnAdvance) {
+    await triggerChime();
+  }
+
+  if (state.autoRippleOnAdvance) {
+    await sendClientAlertRipple();
   }
 }
 
@@ -1521,20 +1558,18 @@ async function boot() {
 elements.nextButton.addEventListener("click", () => changeQueue(1));
 elements.backButton.addEventListener("click", () => changeQueue(-1));
 elements.speakButton.addEventListener("click", triggerSpeak);
-elements.alertButton.addEventListener("click", triggerAlert);
+elements.chimeButton.addEventListener("click", triggerChime);
+elements.alertButton.addEventListener("click", sendClientAlertRipple);
 elements.settingsButton.addEventListener("click", toggleSettingsPanel);
 elements.resetButton.addEventListener("click", openResetModal);
 elements.autoSpeakToggle.addEventListener("change", (event) => {
   updateHostSetting("autoSpeakOnAdvance", event.target.checked);
 });
-elements.autoAlertToggle.addEventListener("change", (event) => {
-  updateHostSetting("autoAlertOnAdvance", event.target.checked);
+elements.autoChimeToggle.addEventListener("change", (event) => {
+  updateHostSetting("autoChimeOnAdvance", event.target.checked);
 });
-elements.muteHostSpeakToggle.addEventListener("change", (event) => {
-  updateHostSetting("muteHostSpeak", !event.target.checked);
-});
-elements.muteHostChimeToggle.addEventListener("change", (event) => {
-  updateHostSetting("muteHostChime", !event.target.checked);
+elements.autoRippleToggle.addEventListener("change", (event) => {
+  updateHostSetting("autoRippleOnAdvance", event.target.checked);
 });
 elements.saveRoomNameButton.addEventListener("click", saveRoomName);
 elements.setNumberButton.addEventListener("click", submitQueueNumber);

@@ -661,80 +661,12 @@ h1,
   transform: translateX(16px);
 }
 
-.alert-ripple-overlay {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
+.alert-tint-overlay {
+  display: none;
 }
 
-.alert-ripple {
-  position: absolute;
-  width: 22vmax;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  opacity: 0;
-  transform: scale(0.06);
-  background-color: var(--ripple-color);
-}
-
-.alert-ripple-one {
-  --ripple-color: rgb(220, 38, 38);
-}
-.alert-ripple-two {
-  --ripple-color: rgb(252, 248, 11);
-}
-.alert-ripple-three {
-  --ripple-color: rgb(5, 150, 105);
-}
-.alert-ripple-four {
-  --ripple-color: rgb(37, 99, 235);
-}
-.alert-ripple-five {
-  --ripple-color: rgb(255, 255, 255);
-}
-
-.alert-ripple-overlay.active .alert-ripple {
-  animation: client-alert-ripple 2s ease-out forwards;
-}
-
-.alert-ripple-overlay.active .alert-ripple-two {
-  animation-delay: 0.18s;
-}
-.alert-ripple-overlay.active .alert-ripple-three {
-  animation-delay: 0.36s;
-}
-.alert-ripple-overlay.active .alert-ripple-four {
-  animation-delay: 0.54s;
-}
-.alert-ripple-overlay.active .alert-ripple-five {
-  animation-delay: 0.72s;
-}
-
-@keyframes client-alert-ripple {
-  0% {
-    opacity: 0;
-    transform: scale(0.06);
-    background-color: var(--ripple-color);
-  }
-
-  14% {
-    opacity: 0.94;
-    background-color: var(--ripple-color);
-  }
-
-  75% {
-    background-color: var(--ripple-color);
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(10.5);
-    background-color: #ffffff;
-  }
+body.alert-flash {
+  transition: none;
 }
 
 .status {

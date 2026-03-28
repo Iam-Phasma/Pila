@@ -311,7 +311,7 @@ function playAlertTone() {
     .catch(() => {});
 }
 
-function triggerAlertRipple() {
+function triggerAlertChime() {
   if (state.disconnected) {
     return;
   }
@@ -319,25 +319,41 @@ function triggerAlertRipple() {
   if (state.chimeOnAlert) {
     playAlertTone();
   }
+}
 
-  if (!state.rippleOnAlert || !alertRippleOverlay) {
+function triggerAlertRipple() {
+  if (state.disconnected) {
+    return;
+  }
+
+  if (!state.rippleOnAlert) {
     return;
   }
 
   if (state.alertRippleTimer) {
-    window.clearTimeout(state.alertRippleTimer);
+    state.alertRippleTimer.forEach((t) => window.clearTimeout(t));
     state.alertRippleTimer = null;
   }
 
-  alertRippleOverlay.classList.remove("active");
-  void alertRippleOverlay.offsetWidth;
-  alertRippleOverlay.classList.add("active");
+  const colors = ["#dc2626", "#fbbf24", "#16a34a", "#fbbf24", "#dc2626"];
+  const interval = 400;
+
+  document.body.classList.add("alert-flash");
   statusText.textContent = "Host alert triggered";
 
-  state.alertRippleTimer = window.setTimeout(() => {
-    alertRippleOverlay.classList.remove("active");
+  const timers = colors.map((color, i) => {
+    return window.setTimeout(() => {
+      document.body.style.background = color;
+    }, i * interval);
+  });
+
+  timers.push(window.setTimeout(() => {
+    document.body.style.background = "";
+    document.body.classList.remove("alert-flash");
     state.alertRippleTimer = null;
-  }, 2600);
+  }, colors.length * interval));
+
+  state.alertRippleTimer = timers;
 }
 
 function setDisconnected(flag, message = "") {
@@ -462,6 +478,9 @@ async function subscribe() {
 
   state.alertChannel = state.supabase
     .channel("room-effects-" + state.room)
+    .on("broadcast", { event: "alert-chime" }, () => {
+      triggerAlertChime();
+    })
     .on("broadcast", { event: "alert-ripple" }, () => {
       triggerAlertRipple();
     })

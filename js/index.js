@@ -124,6 +124,28 @@ function generateRoomCode(length = GENERATED_ROOM_LENGTH) {
   return code;
 }
 
+async function generateUniqueRoomCode(maxAttempts = 5) {
+  if (!supabase || !isSupabaseConfigured()) {
+    return generateRoomCode();
+  }
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const code = generateRoomCode();
+    const { data } = await supabase
+      .from("queue_rooms")
+      .select("room_code")
+      .eq("room_code", code)
+      .maybeSingle();
+
+    if (!data) {
+      return code;
+    }
+  }
+
+  // All attempts collided — extremely unlikely, use a longer fallback
+  return generateRoomCode(8);
+}
+
 function sanitizeRoomCode(value) {
   const normalized = String(value || "")
     .trim()
@@ -269,8 +291,8 @@ function renderAuthState(session) {
 
   openHostButton.disabled = !hostAuthenticated;
   regenerateCodeButton.disabled = !hostAuthenticated;
-  logoutButton.hidden = !isNamedAccount;
-  logoutButton.disabled = !isNamedAccount;
+  logoutButton.hidden = !hostAuthenticated;
+  logoutButton.disabled = !hostAuthenticated;
   showAccountFormButton.hidden = false;
   showAccountFormButton.disabled = isNamedAccount;
   showAccountFormButton.title = isNamedAccount
@@ -376,6 +398,21 @@ async function openHost() {
 
   if (!currentGeneratedRoom) {
     refreshGeneratedRoom();
+  }
+
+  // Verify the generated code isn't already taken in the DB
+  openHostButton.disabled = true;
+  hostStatus.textContent = "Checking room availability…";
+  try {
+    const uniqueCode = await generateUniqueRoomCode();
+    if (uniqueCode !== currentGeneratedRoom) {
+      currentGeneratedRoom = uniqueCode;
+      generatedRoomCode.textContent = uniqueCode.toUpperCase();
+    }
+  } catch (_) {
+    // DB check failed — proceed with the current code
+  } finally {
+    openHostButton.disabled = false;
   }
 
   const targetUrl = buildRelativeUrl("host.html", currentGeneratedRoom);
@@ -675,6 +712,7 @@ captchaModal.addEventListener("click", (event) => {
 });
 
 openHostButton.addEventListener("click", openHost);
+regenerateCodeButton.addEventListener("click", refreshGeneratedRoom);
 function subscribeOwnershipIndex(userId) {
   if (!supabase || !userId) return;
   // Tear down any previous subscription (e.g. on re-login)
@@ -766,30 +804,19 @@ async function scanImageFile(file) {
       }
     }
 
-    // Fallback: jsQR via canvas (works on iOS Safari and all browsers)
-    if (typeof window.jsQR !== "undefined") {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = url;
-      });
-      URL.revokeObjectURL(url);
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = window.jsQR(
-        imageData.data,
-        imageData.width,
-        imageData.height,
-      );
-      if (code) {
+    // Fallback: goqr.me public API (works on all browsers)
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch("https://api.qrserver.com/v1/read-qr-code/", {
+      method: "POST",
+      body: formData,
+    });
+    if (response.ok) {
+      const result = await response.json();
+      const decoded = result?.[0]?.symbol?.[0]?.data;
+      if (decoded) {
         scannerStatus.textContent = "";
-        await openJoinValue(code.data);
+        await openJoinValue(decoded);
         return;
       }
     }
