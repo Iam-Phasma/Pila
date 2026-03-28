@@ -71,6 +71,7 @@ let currentGeneratedRoom = "";
 let customRoomCodeValue = "";
 let hostAuthenticated = false;
 let currentUserId = "";
+let isCurrentSessionAnonymous = false;
 let ownershipChannel = null;
 
 const MAX_OWNED_ROOMS = 5;
@@ -323,6 +324,7 @@ function renderAuthState(session) {
     const email = isAnonymous ? "Guest" : session.user.email || "host user";
     const userId = session.user.id || "";
     currentUserId = userId;
+    isCurrentSessionAnonymous = isAnonymous;
     accountButtonLabel.textContent = isAnonymous ? "Guest Host" : email;
     authSummary.textContent = isAnonymous ? "Signed in as Guest" : email;
     authStatus.hidden = isNamedAccount;
@@ -350,6 +352,7 @@ function renderAuthState(session) {
     continueHostButton.title = "Sign in to resume a room";
     delete continueHostButton.dataset.room;
     currentUserId = "";
+    isCurrentSessionAnonymous = false;
     if (ownershipChannel && supabase) {
       supabase.removeChannel(ownershipChannel);
       ownershipChannel = null;
@@ -628,6 +631,24 @@ async function signOutHost() {
   }
 
   logoutButton.disabled = true;
+
+  // Guest (anonymous) sessions are non-recoverable after sign-out.
+  // Delete all their rooms now so clients aren't left watching orphaned queues.
+  if (isCurrentSessionAnonymous && currentUserId) {
+    try {
+      await supabase
+        .from("queue_rooms")
+        .delete()
+        .eq("owner_id", currentUserId);
+    } catch (_) {
+      // best-effort — rooms will expire via the TTL job
+    }
+    try {
+      window.localStorage.removeItem(
+        HOST_OWNED_ROOMS_STORAGE_KEY + "-" + currentUserId,
+      );
+    } catch (_) {}
+  }
 
   try {
     await supabase.auth.signOut();
