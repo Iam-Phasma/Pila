@@ -896,7 +896,7 @@ async function printQrCode() {
   <p class="room-label">${roomLabel}</p>
   <div class="divider"></div>
   <p class="instruction">Point your phone camera at the QR code above.<br>No app required &mdash; opens instantly in your browser.</p>
-  <p class="footer">Powered by Pila &nbsp;&middot;&nbsp; ${clientUrl}</p>
+  <p class="footer">Powered by Pila &nbsp;&middot;&nbsp; ${qrUrl}</p>
 </body>
 </html>`);
   win.document.close();
