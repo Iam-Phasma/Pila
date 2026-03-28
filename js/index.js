@@ -36,6 +36,9 @@ const showAccountFormButton = document.getElementById("showAccountFormButton");
 const backToChoiceButton = document.getElementById("backToChoiceButton");
 const captchaModal = document.getElementById("captchaModal");
 const captchaCloseButton = document.getElementById("captchaCloseButton");
+const signOutModal = document.getElementById("signOutModal");
+const cancelSignOutButton = document.getElementById("cancelSignOutButton");
+const confirmSignOutButton = document.getElementById("confirmSignOutButton");
 
 // hCaptcha — replace with your real site key from hcaptcha.com
 const HCAPTCHA_SITE_KEY = "873e8134-a77c-47c8-bba2-960ae5c25cca";
@@ -625,16 +628,28 @@ async function signInHost() {
   }
 }
 
+function openSignOutModal() {
+  signOutModal.hidden = false;
+  confirmSignOutButton.focus();
+}
+
+function closeSignOutModal() {
+  signOutModal.hidden = true;
+  logoutButton.focus();
+}
+
 async function signOutHost() {
   if (!supabase) {
     return;
   }
 
+  closeSignOutModal();
   logoutButton.disabled = true;
 
-  // Guest (anonymous) sessions are non-recoverable after sign-out.
-  // Delete all their rooms now so clients aren't left watching orphaned queues.
-  if (isCurrentSessionAnonymous && currentUserId) {
+  // Delete all owned rooms before signing out, for both guest and named accounts.
+  // Guests lose their account permanently; named accounts should still clean up
+  // so clients aren't left watching orphaned queues.
+  if (currentUserId) {
     try {
       await supabase
         .from("queue_rooms")
@@ -847,7 +862,12 @@ continueHostButton.addEventListener("click", () => {
   }
 });
 loginButton.addEventListener("click", signInHost);
-logoutButton.addEventListener("click", signOutHost);
+logoutButton.addEventListener("click", openSignOutModal);
+cancelSignOutButton.addEventListener("click", closeSignOutModal);
+confirmSignOutButton.addEventListener("click", signOutHost);
+signOutModal.addEventListener("click", (e) => {
+  if (e.target === signOutModal) closeSignOutModal();
+});
 guestSignInButton.addEventListener("click", signInAsGuest);
 showAccountFormButton.addEventListener("click", () => {
   accountSignInForm.hidden = false;

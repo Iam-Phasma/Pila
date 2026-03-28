@@ -356,6 +356,31 @@
       </section>
     </main>
 
+    <!-- Sign-out confirmation modal -->
+    <div class="modal-backdrop" id="signOutModal" hidden>
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="signOutModalTitle"
+        aria-describedby="signOutModalText"
+      >
+        <p class="modal-eyebrow">Confirm Action</p>
+        <h2 id="signOutModalTitle">Sign out?</h2>
+        <p class="modal-text" id="signOutModalText">
+          This will terminate all your active rooms and sign you out.
+        </p>
+        <div class="modal-actions">
+          <button class="secondary" id="cancelSignOutButton" type="button">
+            Cancel
+          </button>
+          <button class="danger" id="confirmSignOutButton" type="button">
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- hCaptcha verification modal -->
     <div
       class="captcha-overlay"
