@@ -873,6 +873,16 @@ body::before {
   gap: 12px;
 }
 
+.qr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qr-actions button {
+  flex: 1 1 120px;
+}
+
 label {
   display: block;
   margin: 0 0 8px;

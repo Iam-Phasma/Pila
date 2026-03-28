@@ -51,6 +51,7 @@ const elements = {
   openClientLink: document.getElementById("openClientLink"),
   qrCanvas: document.getElementById("qrCanvas"),
   printQrButton: document.getElementById("printQrButton"),
+  saveQrButton: document.getElementById("saveQrButton"),
   endQueueModal: document.getElementById("endQueueModal"),
   endQueueModalTitle: document.getElementById("endQueueModalTitle"),
   endQueueModalText: document.getElementById("endQueueModalText"),
@@ -775,6 +776,28 @@ function render() {
   }).catch((error) => {
     console.error(error);
   });
+}
+
+async function saveQrCode() {
+  const clientUrl = buildClientUrl(state.room, state.roomName);
+  const roomCode = state.room.toUpperCase();
+
+  let dataUrl;
+  try {
+    dataUrl = await QRCode.toDataURL(clientUrl, {
+      width: 800,
+      margin: 2,
+      color: { dark: "#0b1c3b", light: "#ffffff" },
+    });
+  } catch (error) {
+    console.error(error);
+    return;
+  }
+
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = "pila-qr-" + roomCode + ".png";
+  a.click();
 }
 
 async function printQrCode() {
@@ -1714,6 +1737,7 @@ elements.addRoomButton.addEventListener("click", openNewRoom);
 elements.copyCodeButton.addEventListener("click", copyCode);
 elements.copyLinkButton.addEventListener("click", copyLink);
 elements.printQrButton.addEventListener("click", printQrCode);
+elements.saveQrButton.addEventListener("click", saveQrCode);
 elements.signOutHostButton.addEventListener("click", openSignOutModal);
 elements.cancelEndQueueButton.addEventListener("click", closeEndQueueModal);
 elements.confirmEndQueueButton.addEventListener("click", confirmPendingAction);
