@@ -408,11 +408,27 @@ async function openHost() {
     refreshGeneratedRoom();
   }
 
-  // For auto-generated codes, verify the code isn't already taken in the DB
+  // Verify room availability and ownership before navigating to host.html
   openHostButton.disabled = true;
   hostStatus.textContent = "Checking room availability\u2026";
   try {
-    if (!customRoomCodeValue) {
+    if (customRoomCodeValue) {
+      // Custom codes: reject if the room is already owned by a different user
+      if (supabase && isSupabaseConfigured()) {
+        const { data: existingRoom } = await supabase
+          .from("queue_rooms")
+          .select("owner_id")
+          .eq("room_code", customRoomCodeValue)
+          .maybeSingle();
+        if (existingRoom?.owner_id && existingRoom.owner_id !== currentUserId) {
+          hostStatus.textContent =
+            "This room code is already in use by another host. Choose a different code.";
+          openHostButton.disabled = false;
+          return;
+        }
+      }
+    } else {
+      // Auto-generated codes: pick one that isn't taken at all
       const uniqueCode = await generateUniqueRoomCode();
       if (uniqueCode !== currentGeneratedRoom) {
         currentGeneratedRoom = uniqueCode;

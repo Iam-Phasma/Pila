@@ -88,6 +88,7 @@ const state = {
   ownershipChannel: null,
   adminNotifyChannel: null,
   terminatedByAdmin: false,
+  ownerId: null,
   sessionId: window.crypto.randomUUID(),
   speechVoices: [],
   ownedRooms: [],
@@ -1033,20 +1034,11 @@ async function fetchRoom() {
   state.currentNumber = clampQueueNumber(data?.current_number ?? 0);
   state.updatedAt = data?.updated_at ?? null;
   state.createdAt = data?.created_at ?? state.createdAt;
+  state.ownerId = data?.owner_id ?? null;
   if (data && Object.prototype.hasOwnProperty.call(data, "room_name")) {
     state.roomName = sanitizeRoomName(data.room_name);
   }
   render();
-
-  // Backfill owner_id for rooms that were created before the column was added
-  if (data && !data.owner_id && state.userId) {
-    state.supabase
-      .from("queue_rooms")
-      .update({ owner_id: state.userId })
-      .eq("room_code", state.room)
-      .then(() => {})
-      .catch(() => {});
-  }
 }
 
 async function deleteRoom() {
@@ -1678,6 +1670,16 @@ async function boot() {
 
   try {
     await subscribe();
+
+    // Ownership guard: if the room already exists in the DB and belongs to
+    // a different user, this device has no right to act as the host.
+    // Deregister the room locally and redirect to the client view.
+    if (state.roomExists && state.ownerId && state.ownerId !== state.userId) {
+      unregisterOwnedRoom(state.room);
+      setStatus("This room belongs to another host");
+      window.location.href = buildClientUrl(state.room, state.roomName);
+      return;
+    }
   } catch (error) {
     console.error(error);
     setStatus("Connection failed");
