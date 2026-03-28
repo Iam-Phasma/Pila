@@ -254,8 +254,20 @@
           </div>
 
           <div class="hero-card code-card">
-            <span class="hero-label">Generated room code</span>
+            <span class="hero-label" id="codeCardLabel">Generated room code</span>
             <strong id="generatedRoomCode">------</strong>
+            <div class="custom-code-row">
+              <input
+                id="customRoomInput"
+                type="text"
+                class="custom-code-input"
+                placeholder="or type a custom code"
+                maxlength="6"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <span class="code-format-hint">1 letter + 5 digits &middot; e.g. A12345</span>
+            </div>
           </div>
 
           <div class="tool-strip">

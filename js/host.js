@@ -50,6 +50,7 @@ const elements = {
   copyLinkButton: document.getElementById("copyLinkButton"),
   openClientLink: document.getElementById("openClientLink"),
   qrCanvas: document.getElementById("qrCanvas"),
+  printQrButton: document.getElementById("printQrButton"),
   endQueueModal: document.getElementById("endQueueModal"),
   endQueueModalTitle: document.getElementById("endQueueModalTitle"),
   endQueueModalText: document.getElementById("endQueueModalText"),
@@ -774,6 +775,110 @@ function render() {
   }).catch((error) => {
     console.error(error);
   });
+}
+
+async function printQrCode() {
+  const clientUrl = buildClientUrl(state.room, state.roomName);
+  const roomCode = state.room.toUpperCase();
+  const roomLabel = state.roomName
+    ? state.roomName.toUpperCase()
+    : "Room " + roomCode;
+
+  let dataUrl;
+  try {
+    dataUrl = await QRCode.toDataURL(clientUrl, {
+      width: 800,
+      margin: 2,
+      color: { dark: "#0b1c3b", light: "#ffffff" },
+    });
+  } catch (error) {
+    console.error(error);
+    return;
+  }
+
+  const win = window.open("", "_blank", "width=794,height=1123");
+  if (!win) return;
+
+  win.document.write(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QR Code – ${roomLabel}</title>
+  <style>
+    @page { size: A4 portrait; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 210mm;
+      min-height: 297mm;
+      font-family: Inter, system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      background: #ffffff;
+      color: #0b1c3b;
+      padding: 18mm 18mm 14mm;
+    }
+    .kicker {
+      font-size: 18pt;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #2f6fe4;
+      margin-bottom: 10mm;
+      text-align: center;
+    }
+    .qr-img {
+      width: 148mm;
+      height: 148mm;
+      display: block;
+    }
+    .room-label {
+      font-size: 22pt;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 10mm;
+      text-align: center;
+      color: #2f6fe4;
+    }
+    .divider {
+      width: 32mm;
+      height: 1.5px;
+      background: #e4eaf4;
+      margin: 7mm 0;
+    }
+    .instruction {
+      font-size: 11pt;
+      font-weight: 500;
+      color: #5a7499;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .footer {
+      margin-top: auto;
+      padding-top: 12mm;
+      font-size: 8pt;
+      color: #aab8cc;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+  <p class="kicker">Scan to join the queue</p>
+  <img class="qr-img" src="${dataUrl}" alt="QR code for ${roomLabel}" />
+  <p class="room-label">${roomLabel}</p>
+  <div class="divider"></div>
+  <p class="instruction">Point your phone camera at the QR code above.<br>No app required &mdash; opens instantly in your browser.</p>
+  <p class="footer">Powered by Pila &nbsp;&middot;&nbsp; ${clientUrl}</p>
+</body>
+</html>`);
+  win.document.close();
+  win.onload = () => {
+    win.focus();
+    win.print();
+  };
 }
 
 async function signOutHost() {
@@ -1608,6 +1713,7 @@ elements.terminateButton.addEventListener("click", openTerminateModal);
 elements.addRoomButton.addEventListener("click", openNewRoom);
 elements.copyCodeButton.addEventListener("click", copyCode);
 elements.copyLinkButton.addEventListener("click", copyLink);
+elements.printQrButton.addEventListener("click", printQrCode);
 elements.signOutHostButton.addEventListener("click", openSignOutModal);
 elements.cancelEndQueueButton.addEventListener("click", closeEndQueueModal);
 elements.confirmEndQueueButton.addEventListener("click", confirmPendingAction);

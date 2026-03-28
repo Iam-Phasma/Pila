@@ -868,6 +868,9 @@ body::before {
 
 .qr-card {
   padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 label {

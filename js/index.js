@@ -21,6 +21,8 @@ const authStatus = document.getElementById("authStatus");
 const joinInput = document.getElementById("joinInput");
 const openHostButton = document.getElementById("openHostButton");
 const continueHostButton = document.getElementById("continueHostButton");
+const customRoomInput = document.getElementById("customRoomInput");
+const codeCardLabel = document.getElementById("codeCardLabel");
 const joinFromInputButton = document.getElementById("joinFromInputButton");
 const joinStatus = document.getElementById("joinStatus");
 const configNotice = document.getElementById("configNotice");
@@ -66,6 +68,7 @@ function clearCaptchaValid() {
 const supabase = createSupabaseBrowserClient();
 
 let currentGeneratedRoom = "";
+let customRoomCodeValue = "";
 let hostAuthenticated = false;
 let currentUserId = "";
 let ownershipChannel = null;
@@ -173,6 +176,10 @@ function buildRelativeUrl(page, room) {
 
 function refreshGeneratedRoom() {
   currentGeneratedRoom = generateRoomCode();
+  customRoomCodeValue = "";
+  customRoomInput.value = "";
+  customRoomInput.classList.remove("valid", "invalid");
+  codeCardLabel.textContent = "Generated room code";
   generatedRoomCode.textContent = currentGeneratedRoom.toUpperCase();
   if (hostAuthenticated) {
     hostStatus.textContent =
@@ -291,6 +298,7 @@ function renderAuthState(session) {
 
   openHostButton.disabled = !hostAuthenticated;
   regenerateCodeButton.disabled = !hostAuthenticated;
+  customRoomInput.disabled = !hostAuthenticated;
   logoutButton.hidden = !hostAuthenticated;
   logoutButton.disabled = !hostAuthenticated;
   showAccountFormButton.hidden = false;
@@ -396,18 +404,20 @@ async function openHost() {
     return;
   }
 
-  if (!currentGeneratedRoom) {
+  if (!customRoomCodeValue && !currentGeneratedRoom) {
     refreshGeneratedRoom();
   }
 
-  // Verify the generated code isn't already taken in the DB
+  // For auto-generated codes, verify the code isn't already taken in the DB
   openHostButton.disabled = true;
-  hostStatus.textContent = "Checking room availability…";
+  hostStatus.textContent = "Checking room availability\u2026";
   try {
-    const uniqueCode = await generateUniqueRoomCode();
-    if (uniqueCode !== currentGeneratedRoom) {
-      currentGeneratedRoom = uniqueCode;
-      generatedRoomCode.textContent = uniqueCode.toUpperCase();
+    if (!customRoomCodeValue) {
+      const uniqueCode = await generateUniqueRoomCode();
+      if (uniqueCode !== currentGeneratedRoom) {
+        currentGeneratedRoom = uniqueCode;
+        generatedRoomCode.textContent = uniqueCode.toUpperCase();
+      }
     }
   } catch (_) {
     // DB check failed — proceed with the current code
@@ -415,7 +425,7 @@ async function openHost() {
     openHostButton.disabled = false;
   }
 
-  const targetUrl = buildRelativeUrl("host.html", currentGeneratedRoom);
+  const targetUrl = buildRelativeUrl("host.html", customRoomCodeValue || currentGeneratedRoom);
 
   if (isCaptchaValid()) {
     window.location.href = targetUrl;
@@ -713,6 +723,40 @@ captchaModal.addEventListener("click", (event) => {
 
 openHostButton.addEventListener("click", openHost);
 regenerateCodeButton.addEventListener("click", refreshGeneratedRoom);
+
+customRoomInput.addEventListener("input", () => {
+  const raw = customRoomInput.value;
+  if (!raw.trim()) {
+    customRoomCodeValue = "";
+    customRoomInput.classList.remove("valid", "invalid");
+    codeCardLabel.textContent = "Generated room code";
+    generatedRoomCode.textContent =
+      currentGeneratedRoom.toUpperCase() || "------";
+    if (hostAuthenticated && currentGeneratedRoom) {
+      hostStatus.textContent =
+        "Opening Host will start room code " +
+        currentGeneratedRoom.toUpperCase() +
+        ".";
+    }
+    return;
+  }
+  const normalized = normalizeHostRoomCode(raw);
+  if (normalized) {
+    customRoomCodeValue = normalized;
+    customRoomInput.classList.remove("invalid");
+    customRoomInput.classList.add("valid");
+    codeCardLabel.textContent = "Custom room code";
+    generatedRoomCode.textContent = normalized.toUpperCase();
+    if (hostAuthenticated) {
+      hostStatus.textContent =
+        "Opening Host will use custom code " + normalized.toUpperCase() + ".";
+    }
+  } else {
+    customRoomCodeValue = "";
+    customRoomInput.classList.remove("valid");
+    customRoomInput.classList.add("invalid");
+  }
+});
 function subscribeOwnershipIndex(userId) {
   if (!supabase || !userId) return;
   // Tear down any previous subscription (e.g. on re-login)
@@ -879,6 +923,7 @@ if (!isSupabaseConfigured()) {
   authSummary.textContent = "Realtime unavailable";
   openHostButton.disabled = true;
   regenerateCodeButton.disabled = true;
+  customRoomInput.disabled = true;
 } else {
   let { data } = await supabase.auth.getSession();
   // Do NOT auto sign-in — user now chooses Guest or Account explicitly

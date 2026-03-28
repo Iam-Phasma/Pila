@@ -567,6 +567,59 @@ body::before {
   color: var(--sea);
 }
 
+.custom-code-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.custom-code-input {
+  text-align: center;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--ink);
+  width: 100%;
+  max-width: 260px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.custom-code-input::placeholder {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: rgba(11, 28, 59, 0.38);
+  font-size: 0.82rem;
+}
+
+.custom-code-input:focus {
+  border-color: var(--sea);
+}
+
+.custom-code-input.valid {
+  border-color: #16a34a;
+}
+
+.custom-code-input.invalid {
+  border-color: #ef4444;
+}
+
+.code-format-hint {
+  font-size: 0.72rem;
+  color: rgba(11, 28, 59, 0.4);
+  letter-spacing: 0.02em;
+}
+
 .guide-card {
   display: grid;
   gap: 12px;
