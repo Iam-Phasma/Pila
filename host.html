@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="icon" id="siteIcon" href="icons/p.webp" type="image/webp" />
     <title>Pila Host</title>
     <link rel="stylesheet" href="css/host.css" />
   </head>
@@ -12,6 +12,7 @@
     <header class="sticky-header">
       <div class="sticky-header-content">
         <div class="sticky-header-left">
+          <img id="headerLogo" class="header-logo" src="icons/p.webp" alt="" aria-hidden="true">
           <div class="sticky-header-title-wrapper">
             <p class="sticky-header-title">Pila Control Center</p>
             <p class="header-date">
@@ -519,5 +520,25 @@
       </svg>
       <span id="hostAdminToastMsg">Admin notification</span>
     </div>
+    <script>
+      (function () {
+        var icons = ['icons/arrow.webp', 'icons/hash.webp', 'icons/loader.webp', 'icons/node.webp', 'icons/p.webp', 'icons/zero.webp'];
+        var picked = icons[Math.floor(Math.random() * icons.length)];
+        var img = document.getElementById('headerLogo');
+        if (img) img.src = picked;
+        var image = new Image();
+        image.onload = function () {
+          var s = Math.min(image.naturalWidth, image.naturalHeight);
+          var sx = (image.naturalWidth - s) / 2;
+          var sy = (image.naturalHeight - s) / 2;
+          var canvas = document.createElement('canvas');
+          canvas.width = canvas.height = 64;
+          canvas.getContext('2d').drawImage(image, sx, sy, s, s, 0, 0, 64, 64);
+          var link = document.getElementById('siteIcon');
+          if (link) { link.href = canvas.toDataURL(); link.type = 'image/png'; }
+        };
+        image.src = picked;
+      })();
+    </script>
   </body>
 </html>

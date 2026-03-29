@@ -423,6 +423,14 @@ body::before {
   min-width: 0;
 }
 
+.header-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .sticky-header-title-wrapper {
   display: grid;
   gap: 1px;
