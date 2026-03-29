@@ -306,20 +306,20 @@ function renderAuthState(session) {
   logoutButton.hidden = !hostAuthenticated;
   logoutButton.disabled = !hostAuthenticated;
   showAccountFormButton.hidden = false;
-  showAccountFormButton.disabled = isNamedAccount;
-  showAccountFormButton.title = isNamedAccount
-    ? "Sign out first to switch accounts"
+  showAccountFormButton.disabled = hostAuthenticated;
+  showAccountFormButton.title = hostAuthenticated
+    ? "Sign out first"
     : "";
-  loginButton.disabled = isNamedAccount;
-  hostEmailInput.disabled = isNamedAccount;
-  hostPasswordInput.disabled = isNamedAccount;
+  loginButton.disabled = hostAuthenticated;
+  hostEmailInput.disabled = hostAuthenticated;
+  hostPasswordInput.disabled = hostAuthenticated;
 
   // Show the right panel section
-  // Named account: show choices but disable guest option (must sign out first)
-  // Anonymous guest: hide choices (already signed in as guest)
+  // Signed in (guest or named): show choices but disable both (must sign out first)
   // Not signed in: show choices, both enabled
-  authChoiceGroup.hidden = isAnonymous;
-  guestSignInButton.disabled = isNamedAccount;
+  authChoiceGroup.hidden = false;
+  guestSignInButton.disabled = hostAuthenticated;
+  guestSignInButton.title = hostAuthenticated ? "Sign out first" : "";
   accountSignInForm.hidden = true; // always collapse form on any state change
   signedInActions.hidden = !hostAuthenticated;
 
