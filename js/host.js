@@ -338,6 +338,9 @@ function formatExpiry(createdAt) {
   if (remainingMs <= 0) {
     return "Expired";
   }
+  if (remainingMs < 60000) {
+    return Math.ceil(remainingMs / 1000) + "s left";
+  }
   const totalMinutes = Math.ceil(remainingMs / 60000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -1774,21 +1777,45 @@ window.addEventListener("keydown", (event) => {
 
 window.addEventListener("beforeunload", releaseTabLock);
 
-window.setInterval(() => {
-  if (state.roomExists) claimTabLock();
+function tickExpiry() {
   if (elements.lastUpdateStat)
     elements.lastUpdateStat.textContent = formatTime(state.updatedAt);
-  if (elements.expiresAtStat) {
-    const remaining = formatExpiry(state.createdAt);
-    elements.expiresAtStat.textContent = remaining;
-    const isLow =
-      state.createdAt &&
-      ROOM_TTL_MS - (Date.now() - new Date(state.createdAt).getTime()) <
-        60 * 60 * 1000;
-    elements.expiresAtStat
-      .closest(".stat")
-      ?.classList.toggle("stat-expiry-low", isLow);
+
+  if (state.roomExists && !state.terminated && state.createdAt) {
+    const remainingMs = ROOM_TTL_MS - (Date.now() - new Date(state.createdAt).getTime());
+    if (remainingMs <= 0) {
+      deleteRoom();
+      return;
+    }
+
+    if (elements.expiresAtStat) {
+      elements.expiresAtStat.textContent = formatExpiry(state.createdAt);
+      const isLow = remainingMs < 60 * 60 * 1000;
+      elements.expiresAtStat
+        .closest(".stat")
+        ?.classList.toggle("stat-expiry-low", isLow);
+    }
+
+    // Use 1s interval in last minute so seconds tick, else 10s is fine
+    const nextTick = remainingMs < 60000 ? 1000 : 10000;
+    clearTimeout(_expiryTickTimer);
+    _expiryTickTimer = setTimeout(tickExpiry, nextTick);
+    return;
   }
+
+  if (elements.expiresAtStat) {
+    elements.expiresAtStat.textContent = formatExpiry(state.createdAt);
+  }
+
+  // Room not active — poll slowly
+  clearTimeout(_expiryTickTimer);
+  _expiryTickTimer = setTimeout(tickExpiry, 10000);
+}
+
+let _expiryTickTimer = setTimeout(tickExpiry, 1000);
+
+window.setInterval(() => {
+  if (state.roomExists) claimTabLock();
 }, 10000);
 
 boot();
