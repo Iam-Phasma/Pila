@@ -463,9 +463,6 @@ async function subscribe() {
         setDisconnected(false);
         render();
         statusText.textContent = "Updated just now";
-        if (state.speakOnUpdate && state.currentNumber !== previousNumber) {
-          speakQueueNumber();
-        }
       },
     )
     .subscribe((status) => {

@@ -702,7 +702,7 @@ async function runAdvanceActions(source) {
   }
 
   if (state.autoSpeakOnAdvance) {
-    speakQueueNumber();
+    await triggerSpeak();
   }
 
   if (state.autoChimeOnAdvance) {
