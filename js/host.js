@@ -74,6 +74,8 @@ const state = {
   currentUserEmail: "",
   updatedAt: null,
   createdAt: null,
+  lapseAnchor: null,
+  lapseForNumber: null,
   busy: false,
   roomExists: false,
   terminated: false,
@@ -314,6 +316,53 @@ function redirectToLogin() {
 const ROOM_TTL_MS = 10 * 60 * 60 * 1000; // 10 hours
 
 let _adminToastTimer = null;
+let _lapseInterval = null;
+
+// Called only by setQueueNumber after a local write — anchors to right now.
+function anchorLapseToNow(number) {
+  state.lapseAnchor = Date.now();
+  state.lapseForNumber = number;
+}
+
+// Called by render() — always derive from DB updatedAt when the number changes.
+function syncLapseFromDB() {
+  if (state.currentNumber >= 1 && state.currentNumber !== state.lapseForNumber) {
+    state.lapseAnchor = state.updatedAt
+      ? new Date(state.updatedAt).getTime()
+      : Date.now();
+    state.lapseForNumber = state.currentNumber;
+  }
+}
+
+function updateLapseStat() {
+  if (!elements.currentNumberStat) return;
+  if (state.currentNumber >= 1 && state.lapseAnchor) {
+    const elapsedSeconds = Math.max(
+      0,
+      Math.floor((Date.now() - state.lapseAnchor) / 1000),
+    );
+    if (elapsedSeconds < 60) {
+      elements.currentNumberStat.textContent = elapsedSeconds + "s";
+    } else {
+      const minutes = Math.floor(elapsedSeconds / 60);
+      const seconds = elapsedSeconds % 60;
+      if (minutes < 60) {
+        elements.currentNumberStat.textContent = minutes + "m" + (seconds > 0 ? " " + seconds + "s" : "");
+      } else {
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        elements.currentNumberStat.textContent = hours + "h" + (remainingMinutes > 0 ? " " + remainingMinutes + "m" : "");
+      }
+    }
+  } else {
+    elements.currentNumberStat.textContent = "--";
+  }
+}
+
+function startLapseTimer() {
+  if (_lapseInterval) clearInterval(_lapseInterval);
+  _lapseInterval = setInterval(updateLapseStat, 1000);
+}
 
 function showHostToast(message) {
   if (!elements.hostAdminToast || !elements.hostAdminToastMsg) {
@@ -756,7 +805,8 @@ function render() {
   state.currentNumber = safeCurrentNumber;
   renderAccount();
   elements.queueNumber.textContent = numberText;
-  elements.currentNumberStat.textContent = roomCode;
+  syncLapseFromDB();
+  updateLapseStat();
   elements.watcherCountStat.textContent = String(state.watcherCount);
   if (elements.roomStat) elements.roomStat.textContent = roomCode;
   if (elements.lastUpdateStat)
@@ -993,6 +1043,8 @@ function handleRoomDeleted(message) {
   state.currentNumber = 0;
   state.watcherCount = 0;
   state.updatedAt = null;
+  state.lapseAnchor = null;
+  state.lapseForNumber = null;
   render();
   setBusy(false);
   setStatus(displayMessage);
@@ -1101,13 +1153,19 @@ async function setQueueNumber(nextNumber, options = {}) {
   try {
     const clampedNumber = clampQueueNumber(nextNumber);
     await ensureRoomExists();
+    const now = new Date().toISOString();
     const { error } = await state.supabase
       .from("queue_rooms")
       .update({
         current_number: clampedNumber,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       })
       .eq("room_code", state.room);
+
+    // Anchor lapse to right now for instant local feedback
+    state.currentNumber = clampedNumber;
+    state.updatedAt = now;
+    anchorLapseToNow(clampedNumber);
 
     if (error) {
       throw error;
@@ -1822,4 +1880,5 @@ window.setInterval(() => {
   if (state.roomExists) claimTabLock();
 }, 10000);
 
+startLapseTimer();
 boot();
