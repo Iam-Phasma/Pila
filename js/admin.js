@@ -1,5 +1,9 @@
 import { createSupabaseBrowserClient, isSupabaseConfigured } from "./config.js";
 
+// Prevent back/forward navigation (back button, trackpad swipe, etc.)
+history.pushState(null, "", location.href);
+window.addEventListener("popstate", () => history.pushState(null, "", location.href));
+
 const ROOM_TTL_MS = 10 * 60 * 60 * 1000; // 10 hours
 
 const supabase = createSupabaseBrowserClient();

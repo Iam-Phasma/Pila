@@ -1,5 +1,9 @@
 import { createSupabaseBrowserClient, isSupabaseConfigured } from "./config.js";
 
+// Prevent back/forward navigation (back button, trackpad swipe, etc.)
+history.pushState(null, "", location.href);
+window.addEventListener("popstate", () => history.pushState(null, "", location.href));
+
 const DEFAULT_ROOM = "main";
 const GENERATED_ROOM_LENGTH = 6;
 const ROOM_REGEX = /^[a-z0-9-]{1,32}$/;

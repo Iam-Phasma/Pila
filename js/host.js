@@ -1,6 +1,10 @@
 import { createSupabaseBrowserClient, isSupabaseConfigured } from "./config.js";
 import QRCode from "https://esm.sh/qrcode@1.5.4";
 
+// Prevent back/forward navigation (back button, trackpad swipe, etc.)
+history.pushState(null, "", location.href);
+window.addEventListener("popstate", () => history.pushState(null, "", location.href));
+
 const DEFAULT_ROOM = "main";
 const GENERATED_ROOM_LENGTH = 6;
 const MAX_QUEUE_NUMBER = 99999;
