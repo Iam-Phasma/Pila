@@ -17,7 +17,7 @@ A lightweight, real-time queue management system built with vanilla HTML/CSS/JS 
 ## How It Works
 
 1. **Sign in** on the Dashboard — as a named account or as a Guest.
-2. **Create a room** — a unique 6-character code is auto-generated, or type a custom code (e.g. `A12345`) to reuse a printed QR poster every day.
+2. **Create a room** — a unique 6-character code is auto-generated, or type a custom code (e.g. `A12345`) to reuse a printed QR poster every day (subject to room availability).
 3. **Open Host** — launches `host.html` bound to that room code.
 4. **Share access** — the host panel exposes the room code, a direct client link, a QR canvas, and a **Print QR** button that generates a ready-to-print A4 poster.
 5. **Join display** — clients open `client.html` via the link, by scanning the QR code with any phone camera, or by entering the code on the dashboard. The display updates in real time whenever the host advances the queue.
