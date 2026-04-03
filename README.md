@@ -2,6 +2,8 @@
 
 A lightweight, real-time queue management system built with vanilla HTML/CSS/JS and powered by [Supabase](https://supabase.com) for live sync.
 
+Open: https://iam-phasma.github.io/Pila/
+
 ---
 
 ## Pages
