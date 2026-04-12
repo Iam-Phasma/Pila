@@ -100,48 +100,6 @@
       </label>
     </div>
     <script type="module" src="js/client.js"></script>
-    <script>
-      (function () {
-        const el = document.getElementById("liveClock");
-        function tick() {
-          const now = new Date();
-          let h = now.getHours();
-          const m = String(now.getMinutes()).padStart(2, "0");
-          const ampm = h >= 12 ? "PM" : "AM";
-          h = h % 12 || 12;
-          const show = now.getSeconds() % 2 === 0;
-          el.innerHTML =
-            h +
-            '<span class="clock-sep" style="opacity:' +
-            (show ? "1" : "0.15") +
-            '">' +
-            ":" +
-            "</span>" +
-            m +
-            ' <span class="clock-ampm">' +
-            ampm +
-            "</span>";
-        }
-        tick();
-        setInterval(tick, 1000);
-      })();
-    </script>
-    <script>
-      (function () {
-        var picked = 'icons/hash.webp';
-        var image = new Image();
-        image.onload = function () {
-          var s = Math.min(image.naturalWidth, image.naturalHeight);
-          var sx = (image.naturalWidth - s) / 2;
-          var sy = (image.naturalHeight - s) / 2;
-          var canvas = document.createElement('canvas');
-          canvas.width = canvas.height = 64;
-          canvas.getContext('2d').drawImage(image, sx, sy, s, s, 0, 0, 64, 64);
-          var link = document.getElementById('siteIcon');
-          if (link) { link.href = canvas.toDataURL(); link.type = 'image/png'; }
-        };
-        image.src = picked;
-      })();
-    </script>
+    <script src="js/favicon.js"></script>
   </body>
 </html>

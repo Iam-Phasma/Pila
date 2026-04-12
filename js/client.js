@@ -606,3 +606,27 @@ async function boot() {
 }
 
 boot();
+
+(function () {
+  const el = document.getElementById("liveClock");
+  if (!el) return;
+  function tick() {
+    const now = new Date();
+    let h = now.getHours();
+    const m = String(now.getMinutes()).padStart(2, "0");
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    const show = now.getSeconds() % 2 === 0;
+    el.innerHTML =
+      h +
+      '<span class="clock-sep" style="opacity:' +
+      (show ? "1" : "0.15") +
+      '">:</span>' +
+      m +
+      ' <span class="clock-ampm">' +
+      ampm +
+      "</span>";
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
