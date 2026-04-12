@@ -15,6 +15,7 @@ const HOST_OWNED_ROOMS_STORAGE_KEY = "pila-host-owned-rooms";
 const ROOM_REGEX = /^[a-z0-9-]{1,32}$/;
 const TAB_LOCK_STORAGE_KEY_PREFIX = "pila-host-tab-";
 const TAB_LOCK_TTL_MS = 30000;
+const WRITE_COOLDOWN_MS = 300;
 
 const elements = {
   statusChip: document.getElementById("statusChip"),
@@ -160,7 +161,19 @@ function persistHostSettings() {
 }
 
 function renderSettings() {
-  elements.settingsPanel.hidden = !state.settingsOpen;
+  const panel = elements.settingsPanel;
+  if (!state.settingsOpen && !panel.hidden) {
+    if (!panel.classList.contains("panel-closing")) {
+      panel.classList.add("panel-closing");
+      setTimeout(() => {
+        panel.hidden = true;
+        panel.classList.remove("panel-closing");
+      }, 160);
+    }
+  } else {
+    panel.classList.remove("panel-closing");
+    panel.hidden = !state.settingsOpen;
+  }
   elements.settingsButton.setAttribute(
     "aria-expanded",
     String(state.settingsOpen),
@@ -315,6 +328,8 @@ function redirectToLogin() {
 
 const ROOM_TTL_MS = 10 * 60 * 60 * 1000; // 10 hours
 
+let _lastQueueWriteAt = 0;
+let _lastRoomNameSaveAt = 0;
 let _adminToastTimer = null;
 let _lapseInterval = null;
 
@@ -768,6 +783,12 @@ async function runAdvanceActions(source) {
 }
 
 async function saveRoomName() {
+  const saveTs = Date.now();
+  if (saveTs - _lastRoomNameSaveAt < 1000) {
+    setStatus("Too fast — please wait a moment");
+    return;
+  }
+  _lastRoomNameSaveAt = saveTs;
   const sanitizedRoomName = sanitizeRoomName(elements.roomNameInput.value);
   state.roomName = sanitizedRoomName;
   registerOwnedRoom(state.room, sanitizedRoomName);
@@ -1149,6 +1170,12 @@ async function deleteRoom() {
 }
 
 async function setQueueNumber(nextNumber, options = {}) {
+  const writeTs = Date.now();
+  if (writeTs - _lastQueueWriteAt < WRITE_COOLDOWN_MS) {
+    setStatus("Too fast — please wait a moment");
+    return;
+  }
+  _lastQueueWriteAt = writeTs;
   setBusy(true);
   try {
     const clampedNumber = clampQueueNumber(nextNumber);
@@ -1684,7 +1711,6 @@ async function boot() {
   state.supabase = createSupabaseBrowserClient();
 
   let { data, error } = await state.supabase.auth.getSession();
-  // Auto sign-in anonymously — no email/password required
   if (!error && !data.session) {
     const { data: anonData, error: anonError } =
       await state.supabase.auth.signInAnonymously();

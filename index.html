@@ -3,6 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'none';
+      script-src 'self' https://esm.sh https://js.hcaptcha.com https://newassets.hcaptcha.com;
+      style-src 'self';
+      connect-src https://elbvdfjwmmsmweusttss.supabase.co wss://elbvdfjwmmsmweusttss.supabase.co https://api2.hcaptcha.com;
+      img-src 'self' data: blob: https://newassets.hcaptcha.com;
+      font-src 'self';
+      frame-src https://newassets.hcaptcha.com;
+      object-src 'none';
+      base-uri 'self';
+    " />
     <link rel="icon" id="siteIcon" href="icons/hash.webp" type="image/webp" />
     <title>Pila — Free Real-Time Queue Management System</title>
     <meta
@@ -91,7 +102,7 @@
               <circle cx="12" cy="8" r="4"></circle>
             </svg>
             <span class="header-user-name" id="accountButtonLabel"
-              >Host Setup</span
+              >Get Started</span
             >
           </button>
           <section class="auth-drawer" id="authDrawer" hidden>
@@ -177,6 +188,7 @@
                   </svg>
                   Collapse Form
                 </button>
+                <p class="auth-dev-notice">Account access is limited to pre-configured hosts. Public sign-ups are not yet available.</p>
                 <div class="auth-form-fields">
                   <label for="hostEmailInput">Email</label>
                   <input
@@ -369,7 +381,7 @@
         <p class="modal-eyebrow">Confirm Action</p>
         <h2 id="signOutModalTitle">Sign out?</h2>
         <p class="modal-text" id="signOutModalText">
-          This will terminate all your active rooms and sign you out.
+          This will sign you out.
         </p>
         <div class="modal-actions">
           <button class="secondary" id="cancelSignOutButton" type="button">

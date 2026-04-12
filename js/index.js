@@ -43,6 +43,7 @@ const captchaCloseButton = document.getElementById("captchaCloseButton");
 const signOutModal = document.getElementById("signOutModal");
 const cancelSignOutButton = document.getElementById("cancelSignOutButton");
 const confirmSignOutButton = document.getElementById("confirmSignOutButton");
+const signOutModalText = document.getElementById("signOutModalText");
 
 // hCaptcha — replace with your real site key from hcaptcha.com
 const HCAPTCHA_SITE_KEY = "873e8134-a77c-47c8-bba2-960ae5c25cca";
@@ -111,7 +112,18 @@ function getOwnedRoomCount(userId) {
 }
 
 function setAuthDrawerOpen(flag) {
-  authDrawer.hidden = !flag;
+  if (!flag && !authDrawer.hidden) {
+    if (!authDrawer.classList.contains("drawer-closing")) {
+      authDrawer.classList.add("drawer-closing");
+      setTimeout(() => {
+        authDrawer.hidden = true;
+        authDrawer.classList.remove("drawer-closing");
+      }, 160);
+    }
+  } else {
+    authDrawer.classList.remove("drawer-closing");
+    authDrawer.hidden = !flag;
+  }
   accountToggleButton.setAttribute("aria-expanded", String(flag));
 }
 
@@ -348,7 +360,7 @@ function renderAuthState(session) {
     refreshContinueButton(userId);
     subscribeOwnershipIndex(userId);
   } else {
-    accountButtonLabel.textContent = "Host Setup";
+    accountButtonLabel.textContent = "Get Started";
     authSummary.textContent = "Not signed in";
     authStatus.hidden = false;
     authStatus.textContent = "Host sign-in required before opening a room.";
@@ -633,6 +645,19 @@ async function signInHost() {
 }
 
 function openSignOutModal() {
+  const roomCount = getOwnedRoomCount(currentUserId);
+  const hasRooms = roomCount > 0;
+  const roomNote = hasRooms
+    ? `Your ${roomCount} active room${roomCount !== 1 ? "s" : ""} will be terminated and all connected clients will be disconnected.`
+    : "";
+  const guestNote = isCurrentSessionAnonymous
+    ? " Your guest account cannot be recovered after signing out."
+    : "";
+
+  if (signOutModalText) {
+    signOutModalText.textContent = (hasRooms ? roomNote : "You have no active rooms.") + guestNote;
+  }
+
   signOutModal.hidden = false;
   confirmSignOutButton.focus();
 }

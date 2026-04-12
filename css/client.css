@@ -63,19 +63,6 @@
   }
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-  }
-}
-
 @keyframes toastPopIn {
   from {
     opacity: 0;
@@ -597,7 +584,25 @@ h1,
   box-shadow: 0 8px 28px rgba(15, 74, 163, 0.14);
   padding: 14px 16px;
   text-align: left;
-  animation: slideDown 180ms ease-out both;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    display 160ms allow-discrete;
+}
+
+.client-settings-panel[hidden] {
+  opacity: 0;
+  transform: translateY(-8px);
+  display: none;
+}
+
+@starting-style {
+  .client-settings-panel:not([hidden]) {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
 }
 
 .client-settings-heading {

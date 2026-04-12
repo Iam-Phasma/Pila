@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'none';
+      script-src 'self' https://esm.sh;
+      style-src 'self';
+      connect-src https://elbvdfjwmmsmweusttss.supabase.co wss://elbvdfjwmmsmweusttss.supabase.co;
+      img-src 'self' data: blob:;
+      font-src 'self';
+      object-src 'none';
+      base-uri 'self';
+    " />
     <link rel="icon" id="siteIcon" href="icons/hash.webp" type="image/webp" />
     <title>Pila Client</title>
     <link rel="stylesheet" href="css/client.css" />

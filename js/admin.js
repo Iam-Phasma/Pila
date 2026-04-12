@@ -483,8 +483,6 @@ async function boot() {
     renderTable(groups);
   }, 30000);
 
-  // ---- Event listeners ----
-
   elements.terminateAllButton.addEventListener("click", () => {
     if (rooms.length === 0) {
       showToast("No active rooms to terminate.", "info");
