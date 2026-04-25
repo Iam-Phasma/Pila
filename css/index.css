@@ -366,15 +366,17 @@ body::before {
   box-shadow: 0 2px 8px rgba(11, 28, 59, 0.04);
 }
 
-.sticky-header-content,
 .page {
   width: min(1120px, calc(100vw - 32px));
   margin: 0 auto;
 }
 
 .sticky-header-content {
+  width: 100%;
+  max-width: none;
+  margin: 0;
   min-height: 64px;
-  padding: 8px 0;
+  padding: 8px clamp(18px, 3.5vw, 40px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1425,9 +1427,12 @@ video.show {
     --header-offset: 136px;
   }
 
-  .sticky-header-content,
   .page {
     width: min(100vw - 20px, 1120px);
+  }
+
+  .sticky-header-content {
+    padding-inline: 14px;
   }
 
   .sticky-header-left {

@@ -217,10 +217,11 @@ button:disabled {
 }
 
 .sticky-header-content {
-  width: min(1120px, calc(100vw - 32px));
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   min-height: 64px;
-  padding: 8px 0;
+  padding: 8px clamp(18px, 3.5vw, 40px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -700,7 +701,7 @@ button:disabled {
    ============================================ */
 @media (max-width: 640px) {
   .sticky-header-content {
-    width: calc(100vw - 20px);
+    padding-inline: 10px;
   }
   .page {
     width: calc(100vw - 20px);
