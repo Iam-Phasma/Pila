@@ -267,8 +267,16 @@
           </div>
 
           <div class="hero-card code-card">
-            <span class="hero-label" id="codeCardLabel">Generated room code</span>
-            <strong id="generatedRoomCode">------</strong>
+            <div class="code-card-top">
+              <span class="hero-label" id="codeCardLabel">Generated room code</span>
+              <div class="code-pie-wrap" aria-hidden="true">
+                <svg class="pie-svg" viewBox="0 0 20 20">
+                  <circle class="pie-track" cx="10" cy="10" r="8" />
+                  <circle class="pie-progress" id="pieFill" cx="10" cy="10" r="8" />
+                </svg>
+              </div>
+            </div>
+            <div class="code-digits" id="generatedRoomCode" aria-live="polite" aria-label="Generated room code"></div>
             <div class="custom-code-row">
               <input
                 id="customRoomInput"

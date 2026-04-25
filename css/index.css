@@ -484,7 +484,7 @@ body::before {
   grid-template-columns: minmax(0, 1.28fr) minmax(320px, 0.9fr);
   gap: 22px;
   align-items: start;
-  max-width: 920px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
@@ -545,6 +545,7 @@ body::before {
   display: grid;
   gap: 8px;
   justify-items: center;
+  container-type: inline-size;
 }
 
 .hero-label {
@@ -555,11 +556,94 @@ body::before {
   color: rgba(11, 28, 59, 0.56);
 }
 
-.code-card strong {
-  font-size: clamp(3.2rem, 8vw, 5.4rem);
+/* --- Code card header row --- */
+.code-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* --- Pie countdown timer --- */
+.code-pie-wrap {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.pie-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.pie-track {
+  fill: none;
+  stroke: rgba(47, 111, 228, 0.15);
+  stroke-width: 3;
+}
+
+.pie-progress {
+  fill: none;
+  stroke: var(--sea);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 50.265;
+  stroke-dashoffset: 50.265;
+  transform-origin: 10px 10px;
+  transform: rotate(-90deg);
+  opacity: 0.7;
+  animation: none;
+}
+
+@keyframes pieFill {
+  from { stroke-dashoffset: 50.265; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* --- Scrolling digit display --- */
+.code-digits {
+  display: flex;
+  width: auto;
+  max-width: 100%;
+  justify-content: center;
+  gap: 0;
+  font-size: clamp(3.4rem, 18cqw, 6.15rem);
+  font-weight: 700;
   line-height: 0.95;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   color: var(--sea);
+  font-variant-numeric: tabular-nums;
+}
+
+.code-digit-slot {
+  overflow: hidden;
+  height: 1em;
+  display: inline-block;
+  vertical-align: baseline;
+  position: relative;
+  line-height: 1;
+  width: 0.82em;
+  text-align: center;
+  flex: 0 0 0.82em;
+}
+
+.code-digit-wheel {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+  transform: translateY(0);
+}
+
+.code-digit-wheel-animating {
+  transition: transform 0.46s cubic-bezier(0.42, 0, 0.58, 1);
+}
+
+.code-digit-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1em;
+  line-height: 1;
 }
 
 .custom-code-row {
@@ -1383,6 +1467,16 @@ video.show {
     left: auto;
     width: min(344px, calc(100vw - 20px));
   }
+
+  .code-digits {
+    width: min(100%, 5.65em);
+    font-size: clamp(2.7rem, 15.5cqw, 4.8rem);
+  }
+
+  .code-digit-slot {
+    width: 0.94em;
+    flex-basis: 0.94em;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1402,8 +1496,15 @@ video.show {
     max-width: min(58vw, 220px);
   }
 
-  .code-card strong {
-    font-size: clamp(2.6rem, 15vw, 4rem);
+  .code-digits {
+    width: min(100%, 6em);
+    font-size: clamp(2.25rem, 14.8cqw, 4rem);
+    letter-spacing: 0.02em;
+  }
+
+  .code-digit-slot {
+    width: 1em;
+    flex-basis: 1em;
   }
 }
 

@@ -8,8 +8,135 @@ const DEFAULT_ROOM = "main";
 const GENERATED_ROOM_LENGTH = 6;
 const ROOM_REGEX = /^[a-z0-9-]{1,32}$/;
 const HOST_ROOM_REGEX = /^[a-z][0-9]{5}$/;
+const ROOM_CODE_LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ";
+const ROOM_CODE_DIGITS = "0123456789";
 
 const generatedRoomCode = document.getElementById("generatedRoomCode");
+const pieFillEl = document.getElementById("pieFill");
+const CODE_REFRESH_INTERVAL = 10000;
+const REGENERATE_COOLDOWN_MS = 900;
+let codeRefreshTimer = null;
+let regenerateCooldownTimer = null;
+
+function getRoomCodeAlphabet(index) {
+  return index === 0 ? ROOM_CODE_LETTERS : ROOM_CODE_DIGITS;
+}
+
+function createCodeDigitItem(char) {
+  const item = document.createElement("span");
+  item.className = "code-digit-item";
+  item.textContent = char;
+  return item;
+}
+
+function createCodeDigitWheel(char) {
+  const wheel = document.createElement("span");
+  wheel.className = "code-digit-wheel";
+  wheel.appendChild(createCodeDigitItem(char));
+  return wheel;
+}
+
+function buildCodeSlots(code) {
+  generatedRoomCode.innerHTML = "";
+  for (const [index, ch] of Array.from(String(code).toUpperCase()).entries()) {
+    const slot = document.createElement("span");
+    slot.className = "code-digit-slot";
+    slot.dataset.index = String(index);
+    slot.dataset.char = ch;
+    slot.appendChild(createCodeDigitWheel(ch));
+    generatedRoomCode.appendChild(slot);
+  }
+}
+
+function resetPieAnimation() {
+  if (!pieFillEl) {
+    return;
+  }
+
+  pieFillEl.style.animation = "none";
+  void pieFillEl.getBoundingClientRect();
+  pieFillEl.style.animation = `pieFill ${CODE_REFRESH_INTERVAL}ms linear forwards`;
+}
+
+function animateCodeSlot(slot, nextChar, slotIndex) {
+  const currentChar = slot.dataset.char || nextChar;
+
+  if (currentChar === nextChar) {
+    return;
+  }
+
+  const wheel = document.createElement("span");
+  wheel.className = "code-digit-wheel code-digit-wheel-animating";
+  wheel.appendChild(createCodeDigitItem(currentChar));
+  wheel.appendChild(createCodeDigitItem(nextChar));
+
+  slot.dataset.char = nextChar;
+  slot.replaceChildren(wheel);
+
+  window.setTimeout(() => {
+    wheel.style.transform = "translateY(-1em)";
+  }, slotIndex * 80);
+
+  const finalize = () => {
+    slot.replaceChildren(createCodeDigitWheel(nextChar));
+  };
+
+  wheel.addEventListener("transitionend", finalize, { once: true });
+}
+
+function animateCodeDisplay(code, instant) {
+  const chars = String(code).toUpperCase().split("");
+  const slots = Array.from(generatedRoomCode.querySelectorAll(".code-digit-slot"));
+  if (instant || slots.length !== chars.length) {
+    buildCodeSlots(chars.join(""));
+    return;
+  }
+  chars.forEach((ch, i) => {
+    const slot = slots[i];
+    if (!slot) {
+      return;
+    }
+    animateCodeSlot(slot, ch, i);
+  });
+}
+
+function startCodePieTimer() {
+  window.clearTimeout(codeRefreshTimer);
+  resetPieAnimation();
+  codeRefreshTimer = window.setTimeout(() => {
+    if (!customRoomCodeValue) {
+      const newCode = generateRoomCode();
+      currentGeneratedRoom = newCode;
+      animateCodeDisplay(newCode, false);
+      if (hostAuthenticated) {
+        hostStatus.textContent =
+          "Opening Host will start room code " + newCode.toUpperCase() + ".";
+      }
+      startCodePieTimer();
+    }
+  }, CODE_REFRESH_INTERVAL);
+}
+
+function stopCodePieTimer() {
+  window.clearTimeout(codeRefreshTimer);
+  codeRefreshTimer = null;
+  if (pieFillEl) {
+    pieFillEl.style.animation = "none";
+  }
+}
+
+function startRegenerateCooldown() {
+  if (!regenerateCodeButton) {
+    return;
+  }
+
+  window.clearTimeout(regenerateCooldownTimer);
+  regenerateCodeButton.disabled = true;
+  regenerateCooldownTimer = window.setTimeout(() => {
+    regenerateCooldownTimer = null;
+    regenerateCodeButton.disabled = !hostAuthenticated;
+  }, REGENERATE_COOLDOWN_MS);
+}
 const regenerateCodeButton = document.getElementById("regenerateCodeButton");
 const hostStatus = document.getElementById("hostStatus");
 const accountToggleButton = document.getElementById("accountToggleButton");
@@ -169,6 +296,20 @@ async function generateUniqueRoomCode(maxAttempts = 5) {
   return generateRoomCode(8);
 }
 
+async function isRoomCodeAvailable(code) {
+  if (!code || !supabase || !isSupabaseConfigured()) {
+    return true;
+  }
+
+  const { data } = await supabase
+    .from("queue_rooms")
+    .select("room_code")
+    .eq("room_code", code)
+    .maybeSingle();
+
+  return !data;
+}
+
 function sanitizeRoomCode(value) {
   const normalized = String(value || "")
     .trim()
@@ -200,7 +341,8 @@ function refreshGeneratedRoom() {
   customRoomInput.value = "";
   customRoomInput.classList.remove("valid", "invalid");
   codeCardLabel.textContent = "Generated room code";
-  generatedRoomCode.textContent = currentGeneratedRoom.toUpperCase();
+  animateCodeDisplay(currentGeneratedRoom, false);
+  startCodePieTimer();
   if (hostAuthenticated) {
     hostStatus.textContent =
       "Opening Host will start room code " +
@@ -450,11 +592,14 @@ async function openHost() {
         }
       }
     } else {
-      // Auto-generated codes: pick one that isn't taken at all
-      const uniqueCode = await generateUniqueRoomCode();
-      if (uniqueCode !== currentGeneratedRoom) {
-        currentGeneratedRoom = uniqueCode;
-        generatedRoomCode.textContent = uniqueCode.toUpperCase();
+      // Auto-generated codes: keep the displayed code if it's still available.
+      const displayedCodeAvailable = await isRoomCodeAvailable(currentGeneratedRoom);
+      if (!displayedCodeAvailable) {
+        const uniqueCode = await generateUniqueRoomCode();
+        if (uniqueCode !== currentGeneratedRoom) {
+          currentGeneratedRoom = uniqueCode;
+          animateCodeDisplay(uniqueCode, true);
+        }
       }
     }
   } catch (_) {
@@ -803,7 +948,14 @@ captchaModal.addEventListener("click", (event) => {
 });
 
 openHostButton.addEventListener("click", openHost);
-regenerateCodeButton.addEventListener("click", refreshGeneratedRoom);
+regenerateCodeButton.addEventListener("click", () => {
+  if (regenerateCodeButton.disabled || regenerateCooldownTimer) {
+    return;
+  }
+
+  refreshGeneratedRoom();
+  startRegenerateCooldown();
+});
 
 customRoomInput.addEventListener("input", () => {
   const raw = customRoomInput.value;
@@ -811,8 +963,8 @@ customRoomInput.addEventListener("input", () => {
     customRoomCodeValue = "";
     customRoomInput.classList.remove("valid", "invalid");
     codeCardLabel.textContent = "Generated room code";
-    generatedRoomCode.textContent =
-      currentGeneratedRoom.toUpperCase() || "------";
+    animateCodeDisplay(currentGeneratedRoom || "------", true);
+    startCodePieTimer();
     if (hostAuthenticated && currentGeneratedRoom) {
       hostStatus.textContent =
         "Opening Host will start room code " +
@@ -821,13 +973,16 @@ customRoomInput.addEventListener("input", () => {
     }
     return;
   }
+
+  stopCodePieTimer();
+
   const normalized = normalizeHostRoomCode(raw);
   if (normalized) {
     customRoomCodeValue = normalized;
     customRoomInput.classList.remove("invalid");
     customRoomInput.classList.add("valid");
     codeCardLabel.textContent = "Custom room code";
-    generatedRoomCode.textContent = normalized.toUpperCase();
+    animateCodeDisplay(normalized, true);
     if (hostAuthenticated) {
       hostStatus.textContent =
         "Opening Host will use custom code " + normalized.toUpperCase() + ".";
@@ -1079,7 +1234,9 @@ if (!isSupabaseConfigured()) {
   openHostButton.disabled = true;
   regenerateCodeButton.disabled = true;
   customRoomInput.disabled = true;
+  buildCodeSlots("------");
 } else {
+  buildCodeSlots("------");
   let { data } = await supabase.auth.getSession();
   // Do NOT auto sign-in — user now chooses Guest or Account explicitly
   renderAuthState(data.session);
