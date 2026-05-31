@@ -837,6 +837,19 @@ body::before {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+/* Jump and Max side by side on wide screens, stacked on narrow */
+.jump-max-row {
+  display: flex;
+  gap: 8px;
+}
+.jump-max-row > * {
+  flex: 1;
+}
+
+.tool-group-max {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .tool-group-manage {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -1482,7 +1495,15 @@ canvas {
     grid-template-columns: 1fr;
   }
 
+  .jump-max-row {
+    flex-direction: column;
+  }
+
   .tool-group-jump {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .tool-group-max {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 

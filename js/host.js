@@ -43,6 +43,8 @@ const elements = {
   resetButton: document.getElementById("resetButton"),
   setNumberInput: document.getElementById("setNumberInput"),
   setNumberButton: document.getElementById("setNumberButton"),
+  maxNumberInput: document.getElementById("maxNumberInput"),
+  setMaxNumberButton: document.getElementById("setMaxNumberButton"),
   endQueueButton: document.getElementById("endQueueButton"),
   terminateButton: document.getElementById("terminateButton"),
   roomSwitcher: document.getElementById("roomSwitcher"),
@@ -71,6 +73,7 @@ const state = {
   room: DEFAULT_ROOM,
   roomName: "",
   currentNumber: 0,
+  maxNumber: 0,
   watcherCount: 0,
   currentUserEmail: "",
   updatedAt: null,
@@ -844,6 +847,7 @@ function render() {
       ?.classList.toggle("stat-expiry-low", isLow);
   }
   elements.setNumberInput.value = String(state.currentNumber);
+  elements.maxNumberInput.value = state.maxNumber > 0 ? String(state.maxNumber) : "";
   elements.roomNameInput.value = state.roomName;
   elements.roomCodeInput.value = roomCode;
   elements.clientLinkInput.value = clientUrl;
@@ -906,82 +910,109 @@ async function printQrCode() {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none';">
   <title>QR Code – ${roomLabel}</title>
   <style>
-    @page { size: A4 portrait; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
+    html, body {
       width: 210mm;
       min-height: 297mm;
-      font-family: Inter, system-ui, sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #fff;
+      color: #0b1c3b;
+    }
+    body {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0;
-      background: #ffffff;
-      color: #0b1c3b;
-      padding: 18mm 18mm 14mm;
+      padding: 20mm;
     }
-    .kicker {
-      font-size: 18pt;
+    .brand {
+      font-size: 48pt;
       font-weight: 800;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      letter-spacing: -0.02em;
       color: #2f6fe4;
-      margin-bottom: 10mm;
-      text-align: center;
+      margin-bottom: 14mm;
     }
     .qr-img {
-      width: 148mm;
-      height: 148mm;
+      width: 140mm;
+      height: 140mm;
       display: block;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(11,28,59,0.08);
     }
-    .room-label {
-      font-size: 22pt;
+    .room-badge {
+      display: inline-block;
+      margin-top: 12mm;
+      padding: 6mm 18mm;
+      border-radius: 999px;
+      background: #2f6fe4;
+      color: #fff;
+      font-size: 28pt;
       font-weight: 800;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-top: 10mm;
       text-align: center;
-      color: #2f6fe4;
     }
-    .divider {
-      width: 32mm;
-      height: 1.5px;
-      background: #e4eaf4;
-      margin: 7mm 0;
-    }
-    .instruction {
-      font-size: 11pt;
+    .instructions {
+      margin-top: 8mm;
+      font-size: 12pt;
       font-weight: 500;
       color: #5a7499;
       text-align: center;
-      line-height: 1.6;
+      line-height: 1.7;
+      max-width: 120mm;
     }
-    .footer {
-      margin-top: auto;
-      padding-top: 12mm;
+    .url-display {
+      margin-top: 16mm;
       font-size: 8pt;
       color: #aab8cc;
-      letter-spacing: 0.04em;
+      text-align: center;
+      word-break: break-all;
+    }
+    @page {
+      size: A4;
+      margin: 0;
+    }
+    @media print {
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        padding: 15mm;
+        justify-content: center;
+      }
+      .qr-img {
+        box-shadow: none;
+        border: 1px solid #e5e7eb;
+      }
+      .brand {
+        margin-bottom: 10mm;
+      }
+      .room-badge {
+        margin-top: 10mm;
+      }
     }
   </style>
 </head>
 <body>
-  <p class="kicker">Scan to join the queue</p>
+  <div class="brand">Pila</div>
   <img class="qr-img" src="${dataUrl}" alt="QR code for ${roomLabel}" />
-  <p class="room-label">${roomLabel}</p>
-  <div class="divider"></div>
-  <p class="instruction">Point your phone camera at the QR code above.<br>No app required &mdash; opens instantly in your browser.</p>
-  <p class="footer">Powered by Pila &nbsp;&middot;&nbsp; ${qrUrl}</p>
+  <div class="room-badge">${roomLabel}</div>
+  <p class="instructions">Scan this QR code with your phone camera — no app required.</p>
+  <div class="url-display">${qrUrl}</div>
 </body>
 </html>`);
   win.document.close();
-  win.onload = () => {
+  // Use a small delay to ensure the document is fully rendered before printing
+  setTimeout(() => {
     win.focus();
     win.print();
-  };
+  }, 300);
 }
 
 async function signOutHost() {
@@ -1051,6 +1082,8 @@ function setBusy(flag) {
   elements.resetButton.disabled = flag || !isSupabaseConfigured();
   elements.setNumberInput.disabled = flag || !isSupabaseConfigured();
   elements.setNumberButton.disabled = flag || !isSupabaseConfigured();
+  elements.maxNumberInput.disabled = flag || !isSupabaseConfigured();
+  elements.setMaxNumberButton.disabled = flag || !isSupabaseConfigured();
   elements.terminateButton.disabled = flag || !isSupabaseConfigured();
 }
 
@@ -1112,6 +1145,7 @@ async function fetchRoom() {
 
   state.roomExists = Boolean(data);
   state.currentNumber = clampQueueNumber(data?.current_number ?? 0);
+  state.maxNumber = data?.max_number ?? 0;
   state.updatedAt = data?.updated_at ?? null;
   state.createdAt = data?.created_at ?? state.createdAt;
   state.ownerId = data?.owner_id ?? null;
@@ -1210,7 +1244,16 @@ async function setQueueNumber(nextNumber, options = {}) {
 
 async function changeQueue(delta) {
   await fetchRoom();
-  await setQueueNumber((state.currentNumber || 0) + delta, {
+  let nextNumber = (state.currentNumber || 0) + delta;
+  // If maxNumber is set and we're going forward past the max, wrap back to 1
+  if (delta > 0 && state.maxNumber > 0 && nextNumber > state.maxNumber) {
+    nextNumber = 1;
+  }
+  // If maxNumber is set and we're going backward past 1, wrap to maxNumber
+  if (delta < 0 && state.maxNumber > 0 && nextNumber < 1) {
+    nextNumber = state.maxNumber;
+  }
+  await setQueueNumber(nextNumber, {
     source: delta > 0 ? "next" : "back",
   });
 }
@@ -1223,12 +1266,77 @@ async function submitQueueNumber() {
     parsedValue < 0 ||
     parsedValue > MAX_QUEUE_NUMBER
   ) {
-    setStatus("Enter a queue number from 0 to 99999");
+    showHostToast("Enter a queue number from 0 to 99999");
+    elements.setNumberInput.focus();
+    return;
+  }
+
+  // Block jumping beyond the max if one is set
+  if (state.maxNumber > 0 && parsedValue > state.maxNumber) {
+    showHostToast("Cannot jump above the Last number (" + state.maxNumber + ")");
     elements.setNumberInput.focus();
     return;
   }
 
   await setQueueNumber(parsedValue, { source: "jump" });
+}
+
+async function submitMaxNumber() {
+  const parsedValue = Number.parseInt(elements.maxNumberInput.value, 10);
+
+  if (!Number.isFinite(parsedValue) || parsedValue < 0 || parsedValue > MAX_QUEUE_NUMBER) {
+    // Empty or invalid — treat as clearing the max (0 = no limit)
+    await saveMaxNumber(0);
+    return;
+  }
+
+  // Block setting max lower than the current queue number
+  if (parsedValue > 0 && parsedValue < state.currentNumber) {
+    showHostToast("Last number cannot be less than the current queue number");
+    elements.maxNumberInput.focus();
+    return;
+  }
+
+  await saveMaxNumber(parsedValue);
+}
+
+async function saveMaxNumber(maxNumber) {
+  setBusy(true);
+  try {
+    const clampedNumber = Math.min(MAX_QUEUE_NUMBER, Math.max(0, maxNumber));
+    await ensureRoomExists();
+    const now = new Date().toISOString();
+    const { error } = await state.supabase
+      .from("queue_rooms")
+      .update({
+        max_number: clampedNumber,
+        updated_at: now,
+      })
+      .eq("room_code", state.room);
+
+    if (error) {
+      // If column doesn't exist yet, guide the user
+      if (error.code === "42703") {
+        setStatus("Run the SQL: ADD COLUMN max_number to queue_rooms");
+        throw error;
+      }
+      throw error;
+    }
+
+    state.maxNumber = clampedNumber;
+    state.updatedAt = now;
+    render();
+    if (clampedNumber > 0) {
+      setStatus("Max queue number set to " + clampedNumber);
+    } else {
+      setStatus("Max queue number cleared (no limit)");
+    }
+  } catch (error) {
+    console.error(error);
+    setStatus("Failed to save max number");
+  } finally {
+    setBusy(false);
+  }
 }
 
 async function subscribe() {
@@ -1254,6 +1362,7 @@ async function subscribe() {
 
         const row = payload.new || payload.old;
         state.currentNumber = row?.current_number ?? 0;
+        state.maxNumber = row?.max_number ?? 0;
         state.updatedAt = row?.updated_at ?? new Date().toISOString();
         if (row && Object.prototype.hasOwnProperty.call(row, "room_name")) {
           state.roomName = sanitizeRoomName(row.room_name);
@@ -1795,6 +1904,13 @@ elements.autoRippleToggle.addEventListener("change", (event) => {
 });
 elements.saveRoomNameButton.addEventListener("click", saveRoomName);
 elements.setNumberButton.addEventListener("click", submitQueueNumber);
+elements.setMaxNumberButton.addEventListener("click", submitMaxNumber);
+elements.maxNumberInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    submitMaxNumber();
+  }
+});
 elements.roomNameInput.addEventListener("input", () => {
   const sanitizedValue = sanitizeRoomName(elements.roomNameInput.value);
 

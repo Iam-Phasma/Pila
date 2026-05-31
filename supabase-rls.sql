@@ -20,6 +20,10 @@ ALTER TABLE public.queue_rooms
 ALTER TABLE public.queue_rooms
   ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
 
+-- max_number controls when the queue wraps back to 1 after Next
+ALTER TABLE public.queue_rooms
+  ADD COLUMN IF NOT EXISTS max_number integer NOT NULL DEFAULT 0;
+
 
 -- =====================================================================
 -- 2. ROW-LEVEL SECURITY (RLS)
@@ -115,6 +119,7 @@ RETURNS TABLE (
   room_code        text,
   room_name        text,
   current_number   integer,
+  max_number       integer,
   owner_id         uuid,
   owner_email      text,
   owner_is_anonymous boolean,
@@ -130,6 +135,7 @@ AS $$
     r.room_code,
     r.room_name,
     r.current_number,
+    r.max_number,
     r.owner_id,
     COALESCE(u.email, '')          AS owner_email,
     COALESCE(u.is_anonymous, true) AS owner_is_anonymous,

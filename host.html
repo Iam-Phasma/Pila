@@ -275,34 +275,58 @@
                     <path d="M16 8v8" />
                     <path d="M8 8v8" />
                   </svg>
-                  <span>Jump Queue</span>
+                  <span>Jump &amp; Max</span>
                 </p>
                 <p class="tool-card-copy">
-                  Set the display to an exact number.
+                  Set an exact number or cap the queue with rollover.
                 </p>
               </div>
-              <div class="tool-group tool-group-jump">
-                <input
-                  id="setNumberInput"
-                  type="number"
-                  min="0"
-                  max="99999"
-                  step="1"
-                  inputmode="numeric"
-                  placeholder="Queue number"
-                  aria-label="Set queue number"
-                />
-                <button class="primary" id="setNumberButton" type="button">
-                  <svg
-                    class="control-button-icon"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path d="m13 5 7 7-7 7" />
-                    <path d="M20 12H4" />
-                  </svg>
-                  <span>Jump</span>
-                </button>
+              <div class="jump-max-row">
+                <div class="tool-group tool-group-jump">
+                  <input
+                    id="setNumberInput"
+                    type="number"
+                    min="0"
+                    max="99999"
+                    step="1"
+                    inputmode="numeric"
+                    placeholder="Queue number"
+                    aria-label="Set queue number"
+                  />
+                  <button class="primary" id="setNumberButton" type="button">
+                    <svg
+                      class="control-button-icon"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="m13 5 7 7-7 7" />
+                      <path d="M20 12H4" />
+                    </svg>
+                    <span>Jump</span>
+                  </button>
+                </div>
+                <div class="tool-group tool-group-max">
+                  <input
+                    id="maxNumberInput"
+                    type="number"
+                    min="0"
+                    max="99999"
+                    step="1"
+                    inputmode="numeric"
+                    placeholder="Max number"
+                    aria-label="Max queue number before rollover"
+                  />
+                  <button class="primary" id="setMaxNumberButton" type="button">
+                    <svg
+                      class="control-button-icon"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                    <span>Set</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

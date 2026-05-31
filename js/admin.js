@@ -215,6 +215,7 @@ function renderUserGroup(group) {
       <td><code class="room-code-cell">${escapeHtml(room.room_code.toUpperCase())}</code></td>
       <td>${room.room_name ? escapeHtml(room.room_name) : '<span class="dim">—</span>'}</td>
       <td class="num-cell">${room.current_number ?? 0}</td>
+      <td class="num-cell">${room.max_number > 0 ? room.max_number : '—'}</td>
       <td class="time-cell">${formatTimeAgo(room.created_at)}</td>
       <td class="time-cell">${formatTimeAgo(room.updated_at)}</td>
       <td class="time-cell${isLow ? " expiry-low" : ""}">${formatExpiry(room.created_at)}</td>
@@ -257,6 +258,7 @@ function renderUserGroup(group) {
             <th>Code</th>
             <th>Name</th>
             <th>Queue&nbsp;#</th>
+            <th>Max</th>
             <th>Created</th>
             <th>Last Active</th>
             <th>Expires</th>
