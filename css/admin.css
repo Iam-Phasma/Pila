@@ -206,7 +206,7 @@ button:disabled {
    ============================================ */
 .sticky-header {
   position: fixed;
-  top: 0;
+  top: var(--pila-server-banner-height, 0px);
   left: 0;
   right: 0;
   min-height: 64px;
@@ -310,7 +310,7 @@ button:disabled {
   flex: 1 0 auto;
   width: min(1120px, calc(100vw - 32px));
   margin: 0 auto;
-  padding: calc(var(--header-offset) + 20px) 0 48px;
+  padding: calc(var(--header-offset) + var(--pila-server-banner-height, 0px) + 20px) 0 48px;
   display: grid;
   gap: 20px;
   align-content: start;

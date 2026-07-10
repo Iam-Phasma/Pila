@@ -355,7 +355,7 @@ body::before {
 
 .sticky-header {
   position: fixed;
-  top: 0;
+  top: var(--pila-server-banner-height, 0px);
   left: 0;
   right: 0;
   width: 100%;
@@ -462,7 +462,7 @@ body::before {
 
 .page {
   flex: 1 0 auto;
-  padding: var(--header-offset) 0 40px;
+  padding: calc(var(--header-offset) + var(--pila-server-banner-height, 0px)) 0 40px;
 }
 
 .notice {

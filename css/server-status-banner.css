@@ -1,0 +1,155 @@
+:root {
+  --pila-server-banner-height: 0px;
+}
+
+.pila-server-banner {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 1200;
+  display: flex;
+  width: 100%;
+  border-bottom: 1px solid rgba(135, 149, 171, 0.28);
+  background: linear-gradient(180deg, rgba(241, 244, 248, 0.99), rgba(234, 239, 245, 0.98));
+  color: var(--ink);
+  box-shadow: 0 8px 28px rgba(11, 28, 59, 0.08);
+  backdrop-filter: blur(10px);
+  transform: translateY(-100%);
+  opacity: 0;
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 180ms ease;
+}
+
+.pila-server-banner.is-visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.pila-server-banner[hidden] {
+  display: none;
+}
+
+.pila-server-banner__inner {
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 14px;
+}
+
+.pila-server-banner__center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 96px);
+}
+
+.pila-server-banner__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  background: transparent;
+  color: var(--sea);
+}
+
+.pila-server-banner__badge svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pila-server-banner__copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.pila-server-banner__title {
+  display: none;
+}
+
+.pila-server-banner__message {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(11, 28, 59, 0.78);
+  text-align: center;
+}
+
+.pila-server-banner__close {
+  flex: 0 0 auto;
+  align-self: center;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(11, 28, 59, 0.74);
+  cursor: pointer;
+}
+
+.pila-server-banner__close:hover {
+  background: transparent;
+}
+
+.pila-server-banner__close:focus-visible {
+  outline: 2px solid rgba(47, 111, 228, 0.34);
+  outline-offset: 2px;
+}
+
+.pila-server-banner__close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+body.server-status-banner-visible .sticky-header {
+  top: var(--pila-server-banner-height, 0px);
+  transition: top 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+body.server-status-banner-visible .page {
+  padding-top: calc(var(--header-offset) + var(--pila-server-banner-height, 0px));
+  transition: padding-top 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sticky-header {
+  transition: top 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.page {
+  transition: padding-top 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (max-width: 700px) {
+  .pila-server-banner__inner {
+    padding: 7px 10px;
+  }
+
+  .pila-server-banner__center {
+    max-width: calc(100% - 72px);
+    gap: 8px;
+  }
+
+  .pila-server-banner__message {
+    font-size: 0.76rem;
+  }
+}

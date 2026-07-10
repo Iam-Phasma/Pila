@@ -1,3 +1,4 @@
+import "./server-status-banner.js";
 import { createSupabaseBrowserClient, isSupabaseConfigured } from "./config.js";
 
 // Prevent back/forward navigation (back button, trackpad swipe, etc.)

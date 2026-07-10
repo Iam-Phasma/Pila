@@ -1,3 +1,4 @@
+import "./server-status-banner.js";
 import { createSupabaseBrowserClient, isSupabaseConfigured } from "./config.js";
 import QRCode from "https://esm.sh/qrcode@1.5.4";
 
