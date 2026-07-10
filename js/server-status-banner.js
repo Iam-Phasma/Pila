@@ -4,12 +4,14 @@ const BANNER_ID = "pila-server-status-banner";
 const CHECK_INTERVAL_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 6_000;
 const DISMISS_DURATION_MS = 5 * 60_000;
+const BANNER_REVEAL_DELAY_MS = 800;
 
 const bannerState = {
   inFlight: false,
   dismissedUntil: 0,
   dismissTimer: null,
   hideTimer: null,
+  revealTimer: null,
   intervalTimer: null,
   visibilityListenerAdded: false,
   onlineListenerAdded: false,
@@ -102,18 +104,27 @@ function showBanner(title, message) {
     messageEl.textContent = message;
   }
 
+  if (bannerState.revealTimer) {
+    window.clearTimeout(bannerState.revealTimer);
+  }
+
   banner.hidden = false;
   document.body.classList.add("server-status-banner-visible");
-  window.requestAnimationFrame(() => {
+  bannerState.revealTimer = window.setTimeout(() => {
     banner.classList.add("is-visible");
     syncBannerLayout();
-  });
+    bannerState.revealTimer = null;
+  }, BANNER_REVEAL_DELAY_MS);
 }
 
 function hideBanner() {
   const banner = document.getElementById(BANNER_ID);
   if (banner) {
     banner.classList.remove("is-visible");
+    if (bannerState.revealTimer) {
+      window.clearTimeout(bannerState.revealTimer);
+      bannerState.revealTimer = null;
+    }
     if (bannerState.hideTimer) {
       window.clearTimeout(bannerState.hideTimer);
     }
@@ -186,7 +197,7 @@ async function checkServerHealth() {
     }
 
     setUnhealthyState(
-      "The backend is temporarily unavailable. Retrying automatically.",
+      "The project is paused, and the backend is temporarily unavailable.",
     );
   } catch (error) {
     if (navigator.onLine === false) {
@@ -197,7 +208,7 @@ async function checkServerHealth() {
     }
 
     setUnhealthyState(
-      "The backend is temporarily unavailable. Retrying automatically.",
+      "The project is paused, and the backend is temporarily unavailable.",
     );
     console.error(error);
   } finally {
