@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta http-equiv="Content-Security-Policy" content="
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
       default-src 'none';
       script-src 'self' https://esm.sh;
       style-src 'self';
@@ -13,9 +15,10 @@
       font-src 'self';
       object-src 'none';
       base-uri 'self';
-    " />
+    "
+    />
     <link rel="icon" id="siteIcon" href="icons/hash.webp" type="image/webp" />
-    <title>Pila Host</title>
+    <title>Pila - Host</title>
     <link rel="stylesheet" href="css/host.css" />
     <link rel="stylesheet" href="css/server-status-banner.css" />
   </head>
@@ -23,7 +26,13 @@
     <header class="sticky-header">
       <div class="sticky-header-content">
         <div class="sticky-header-left">
-          <img id="headerLogo" class="header-logo" src="icons/hash.webp" alt="" aria-hidden="true">
+          <img
+            id="headerLogo"
+            class="header-logo"
+            src="icons/hash.webp"
+            alt=""
+            aria-hidden="true"
+          />
           <div class="sticky-header-title-wrapper">
             <p class="sticky-header-title">Pila Control Center</p>
             <p class="header-date">
@@ -503,8 +512,12 @@
               <canvas id="qrCanvas"></canvas>
             </div>
             <div class="qr-actions">
-              <button class="primary" id="printQrButton" type="button">Print QR</button>
-              <button class="secondary" id="saveQrButton" type="button">Save QR</button>
+              <button class="primary" id="printQrButton" type="button">
+                Print QR
+              </button>
+              <button class="secondary" id="saveQrButton" type="button">
+                Save QR
+              </button>
             </div>
           </div>
         </article>

@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
       default-src 'none';
       script-src 'self' https://esm.sh https://js.hcaptcha.com https://newassets.hcaptcha.com;
       style-src 'self';
@@ -13,7 +15,8 @@
       frame-src https://newassets.hcaptcha.com;
       object-src 'none';
       base-uri 'self';
-    " />
+    "
+    />
     <link rel="icon" id="siteIcon" href="icons/hash.webp" type="image/webp" />
     <title>Pila — Free Real-Time Queue Management System</title>
     <meta
@@ -77,11 +80,17 @@
     <header class="sticky-header">
       <div class="sticky-header-content">
         <div class="sticky-header-left">
-          <img id="headerLogo" class="header-logo" src="icons/hash.webp" alt="" aria-hidden="true">
+          <img
+            id="headerLogo"
+            class="header-logo"
+            src="icons/hash.webp"
+            alt=""
+            aria-hidden="true"
+          />
           <div class="sticky-header-title-wrapper">
-            <p class="sticky-header-title">Pila Dashboard</p>
+            <p class="sticky-header-title">Pila</p>
             <p class="header-date">
-              Start a host session or join an active client display
+              Your free real-time queue management system
             </p>
           </div>
         </div>
@@ -189,7 +198,10 @@
                   </svg>
                   Collapse Form
                 </button>
-                <p class="auth-dev-notice">Account access is limited to pre-configured hosts. Public sign-ups are not yet available.</p>
+                <p class="auth-dev-notice">
+                  Account access is limited to pre-configured hosts. Public
+                  sign-ups are not yet available.
+                </p>
                 <div class="auth-form-fields">
                   <label for="hostEmailInput">Email</label>
                   <input
@@ -269,15 +281,28 @@
 
           <div class="hero-card code-card">
             <div class="code-card-top">
-              <span class="hero-label" id="codeCardLabel">Generated room code</span>
+              <span class="hero-label" id="codeCardLabel"
+                >Generated room code</span
+              >
               <div class="code-pie-wrap" aria-hidden="true">
                 <svg class="pie-svg" viewBox="0 0 20 20">
                   <circle class="pie-track" cx="10" cy="10" r="8" />
-                  <circle class="pie-progress" id="pieFill" cx="10" cy="10" r="8" />
+                  <circle
+                    class="pie-progress"
+                    id="pieFill"
+                    cx="10"
+                    cy="10"
+                    r="8"
+                  />
                 </svg>
               </div>
             </div>
-            <div class="code-digits" id="generatedRoomCode" aria-live="polite" aria-label="Generated room code"></div>
+            <div
+              class="code-digits"
+              id="generatedRoomCode"
+              aria-live="polite"
+              aria-label="Generated room code"
+            ></div>
             <div class="custom-code-row">
               <input
                 id="customRoomInput"
@@ -288,7 +313,9 @@
                 autocomplete="off"
                 spellcheck="false"
               />
-              <span class="code-format-hint">1 letter + 5 digits &middot; e.g. A12345</span>
+              <span class="code-format-hint"
+                >1 letter + 5 digits &middot; e.g. A12345</span
+              >
             </div>
           </div>
 
@@ -350,11 +377,7 @@
           <div class="tool-card">
             <label for="joinInput">Enter Code or paste URL</label>
             <div class="join-input-row">
-              <input
-                id="joinInput"
-                type="text"
-                placeholder="Example: A12345"
-              />
+              <input id="joinInput" type="text" placeholder="Example: A12345" />
               <button class="primary" id="joinFromInputButton">Join</button>
             </div>
             <div class="status" id="joinStatus">
@@ -389,9 +412,7 @@
       >
         <p class="modal-eyebrow">Confirm Action</p>
         <h2 id="signOutModalTitle">Sign out?</h2>
-        <p class="modal-text" id="signOutModalText">
-          This will sign you out.
-        </p>
+        <p class="modal-text" id="signOutModalText">This will sign you out.</p>
         <div class="modal-actions">
           <button class="secondary" id="cancelSignOutButton" type="button">
             Cancel
@@ -443,7 +464,6 @@
         </div>
       </div>
     </div>
-
 
     <script type="module" src="js/index.js"></script>
     <script src="js/favicon.js"></script>
