@@ -1,4 +1,8 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL, isSupabaseConfigured } from "./config.js";
+import {
+  SUPABASE_ANON_KEY,
+  SUPABASE_URL,
+  isSupabaseConfigured,
+} from "./config.js";
 
 const BANNER_ID = "pila-server-status-banner";
 const CHECK_INTERVAL_MS = 30_000;
@@ -83,12 +87,18 @@ function ensureBanner() {
 function syncBannerLayout() {
   const banner = document.getElementById(BANNER_ID);
   if (!banner || banner.hidden) {
-    document.documentElement.style.setProperty("--pila-server-banner-height", "0px");
+    document.documentElement.style.setProperty(
+      "--pila-server-banner-height",
+      "0px",
+    );
     return;
   }
 
   const height = Math.ceil(banner.getBoundingClientRect().height);
-  document.documentElement.style.setProperty("--pila-server-banner-height", `${height}px`);
+  document.documentElement.style.setProperty(
+    "--pila-server-banner-height",
+    `${height}px`,
+  );
 }
 
 function showBanner(title, message) {
@@ -138,7 +148,10 @@ function hideBanner() {
     }, 250);
   }
 
-  document.documentElement.style.setProperty("--pila-server-banner-height", "0px");
+  document.documentElement.style.setProperty(
+    "--pila-server-banner-height",
+    "0px",
+  );
   document.body.classList.remove("server-status-banner-visible");
 }
 
@@ -171,7 +184,10 @@ async function checkServerHealth() {
 
   bannerState.inFlight = true;
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = window.setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS,
+  );
 
   try {
     const response = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
@@ -197,7 +213,7 @@ async function checkServerHealth() {
     }
 
     setUnhealthyState(
-      "The project is paused, and the backend is temporarily unavailable.",
+      "The project is paused indefinitely; the server is unavailable.",
     );
   } catch (error) {
     if (navigator.onLine === false) {
@@ -208,7 +224,7 @@ async function checkServerHealth() {
     }
 
     setUnhealthyState(
-      "The project is paused, and the backend is temporarily unavailable.",
+      "The project is paused indefinitely; the server is unavailable.",
     );
     console.error(error);
   } finally {
